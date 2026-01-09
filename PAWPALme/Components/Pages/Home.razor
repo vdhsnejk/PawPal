@@ -1,7 +1,179 @@
 ﻿@page "/"
+@using PAWPALme.Models
+@using PAWPALme.Services
+@inject PetService PetService
 
 <PageTitle>Home</PageTitle>
 
-<h1>Hello, welcome to PAWPAL!</h1>
+<div class="container mt-4">
 
-Pet Adoption Made Easier.
+    <!-- HERO / LANDING -->
+    <div class="p-4 p-md-5 mb-4 rounded-3 border shadow-sm bg-white">
+        <div class="row align-items-center g-4">
+            <div class="col-md-7">
+                <h1 class="display-6 fw-bold mb-2">PawPal</h1>
+                <p class="lead mb-3">
+                    Pet adoption made easier — browse trusted listings, learn about each pet,
+                    and book an appointment to meet them.
+                </p>
+
+                <div class="d-flex flex-wrap gap-2">
+                    <a class="btn btn-success btn-lg" href="/pets">Browse Pets</a>
+                    <a class="btn btn-outline-secondary btn-lg" href="/Account/Register">Create Account</a>
+                </div>
+
+                <div class="mt-3 text-muted small">
+                    For adopters and shelters — one platform, clearer adoption journeys.
+                </div>
+            </div>
+
+            <div class="col-md-5">
+                <div class="rounded-3 bg-light border d-flex align-items-center justify-content-center"
+                     style="height: 220px;">
+                    <div class="text-center">
+                        <div class="display-4">🐾</div>
+                        <div class="fw-semibold">Find your new best friend</div>
+                        <div class="text-muted small">Browse • Meet • Adopt</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FEATURED PETS -->
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h3 class="mb-0">Featured Pets</h3>
+        <a class="btn btn-outline-primary btn-sm" href="/pets">View all</a>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(loadError))
+    {
+        <div class="alert alert-danger">
+            <strong>Could not load pets.</strong>
+            <div class="small mt-1">@loadError</div>
+        </div>
+    }
+    else if (featuredPets is null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else if (featuredPets.Count == 0)
+    {
+        <div class="alert alert-info">
+            No available pets to show right now.
+        </div>
+    }
+    else
+    {
+        <div class="row g-3">
+            @foreach (var pet in featuredPets)
+            {
+                <div class="col-12 col-sm-6 col-lg-4">
+                    <div class="card h-100 shadow-sm">
+
+                        @if (!string.IsNullOrWhiteSpace(pet.ImageUrl))
+                        {
+                            <img src="@pet.ImageUrl"
+                                 class="card-img-top"
+                                 style="height: 180px; object-fit: cover;"
+                                 alt="@pet.Name" />
+                        }
+                        else
+                        {
+                            <div class="d-flex align-items-center justify-content-center bg-light border-bottom"
+                                 style="height: 180px;">
+                                <div class="text-center">
+                                    <div class="display-6">🐶🐱</div>
+                                    <div class="text-muted small">No image</div>
+                                </div>
+                            </div>
+                        }
+
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <h5 class="card-title mb-1">@pet.Name</h5>
+                                <span class="badge bg-success">@pet.Status</span>
+                            </div>
+
+                            <div class="text-muted small mb-2">
+                                @pet.Species • @pet.Breed • @pet.Age years old
+                            </div>
+
+                            @if (!string.IsNullOrWhiteSpace(pet.Description))
+                            {
+                                <p class="card-text small text-truncate">@pet.Description</p>
+                            }
+                            else
+                            {
+                                <p class="card-text small text-muted fst-italic">No description provided.</p>
+                            }
+                        </div>
+
+                        <div class="card-footer bg-white border-0 d-flex gap-2">
+                            <a class="btn btn-outline-primary w-100"
+                               href="/book-appointment/@pet.Id">
+                                Meet Me
+                            </a>
+                            <a class="btn btn-outline-secondary w-100" href="/pets">
+                                Browse
+                            </a>
+                        </div>
+
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <!-- HOW IT WORKS -->
+    <div class="mt-5">
+        <h4>How it works</h4>
+        <div class="row g-3 mt-1">
+            <div class="col-md-4">
+                <div class="p-3 border rounded-3 bg-white shadow-sm h-100">
+                    <div class="fw-semibold">1) Browse</div>
+                    <div class="text-muted small">Search and filter pets that match your lifestyle.</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 border rounded-3 bg-white shadow-sm h-100">
+                    <div class="fw-semibold">2) Book</div>
+                    <div class="text-muted small">Schedule an appointment to meet the pet at the shelter.</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 border rounded-3 bg-white shadow-sm h-100">
+                    <div class="fw-semibold">3) Adopt</div>
+                    <div class="text-muted small">Shelters review requests and guide you through the next steps.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+@code {
+    private List<Pet>? featuredPets;
+    private string? loadError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Use your existing PetService signature:
+            // GetPetsAsync(string? searchTerm, string? species, string? breed, int? minAge, int? shelterId)
+            var allPets = await PetService.GetPetsAsync(null, null, null, null, null);
+
+            featuredPets = allPets
+                .Where(p => p.Status == "Available")
+                .OrderByDescending(p => p.Id)
+                .Take(6)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            loadError = ex.Message;
+            featuredPets = new List<Pet>();
+        }
+    }
+}
