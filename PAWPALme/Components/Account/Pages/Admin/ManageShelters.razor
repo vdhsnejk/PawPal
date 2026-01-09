@@ -1,0 +1,81 @@
+﻿@page "/admin/shelters"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin")]
+@using PAWPALme.Models
+@using PAWPALme.Services
+@inject ShelterService ShelterService
+@inject NavigationManager Nav
+@rendermode InteractiveServer
+
+<PageTitle>Admin - Manage Shelters</PageTitle>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Manage Shelters</h2>
+        <a href="/admin/shelters/add" class="btn btn-success">+ Add New Shelter</a>
+    </div>
+
+    @if (shelters is null)
+    {
+        <p>Loading...</p>
+    }
+    else if (shelters.Count == 0)
+    {
+        <div class="alert alert-info">No shelters found.</div>
+    }
+    else
+    {
+        <table class="table table-hover shadow-sm">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 70px;">ID</th>
+                    <th>Name</th>
+                    <th>Address</th>
+                    <th style="width: 220px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var s in shelters)
+                {
+                    <tr>
+                        <td>@s.Id</td>
+                        <td>@s.Name</td>
+                        <td>@s.Address</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary me-2"
+                                    @onclick="@(() => GoEdit(s.Id))">
+                                Edit
+                            </button>
+
+                            <button class="btn btn-sm btn-danger"
+                                    @onclick="@(() => DeleteShelter(s.Id))">
+                                Delete
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private List<Shelter>? shelters;
+
+    protected override async Task OnInitializedAsync()
+    {
+        shelters = await ShelterService.GetSheltersAsync();
+    }
+
+    private void GoEdit(int id)
+    {
+        Nav.NavigateTo($"/admin/shelters/edit/{id}");
+    }
+
+    private async Task DeleteShelter(int id)
+    {
+        await ShelterService.DeleteShelterAsync(id);
+        shelters = await ShelterService.GetSheltersAsync();
+    }
+}
+

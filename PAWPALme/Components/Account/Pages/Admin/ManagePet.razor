@@ -1,0 +1,91 @@
+﻿@page "/admin/pets"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin")]
+@using PAWPALme.Models
+@using PAWPALme.Services
+@inject PetService PetService
+@inject NavigationManager Nav
+@rendermode InteractiveServer
+
+<PageTitle>Admin - Manage Pets</PageTitle>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Manage Pets</h2>
+        <a href="/admin/pets/add" class="btn btn-success">+ Add New Pet</a>
+    </div>
+
+    @if (pets is null)
+    {
+        <p>Loading...</p>
+    }
+    else if (pets.Count == 0)
+    {
+        <div class="alert alert-info">No pets found.</div>
+    }
+    else
+    {
+        <table class="table table-hover shadow-sm">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 70px;">ID</th>
+                    <th>Name</th>
+                    <th>Species</th>
+                    <th>Breed</th>
+                    <th style="width: 70px;">Age</th>
+                    <th style="width: 110px;">Status</th>
+                    <th style="width: 220px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var pet in pets)
+                {
+                    <tr>
+                        <td>@pet.Id</td>
+                        <td>@pet.Name</td>
+                        <td>@pet.Species</td>
+                        <td>@pet.Breed</td>
+                        <td>@pet.Age</td>
+                        <td>@pet.Status</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary me-2"
+                                    @onclick="@(() => GoEdit(pet.Id))">
+                                Edit
+                            </button>
+
+                            <button class="btn btn-sm btn-danger"
+                                    @onclick="@(() => DeletePet(pet.Id))">
+                                Delete
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private List<Pet>? pets;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Your PetService requires 5 parameters:
+        // (searchTerm, species, breed, minAge, shelterId)
+        pets = await PetService.GetPetsAsync(null, null, null, null, null);
+    }
+
+    private void GoEdit(int id)
+    {
+        // Avoid Razor parsing issues by building the string here in C#
+        Nav.NavigateTo($"/admin/pets/edit/{id}");
+    }
+
+    private async Task DeletePet(int id)
+    {
+        await PetService.DeletePetAsync(id);
+        pets = await PetService.GetPetsAsync(null, null, null, null, null);
+    }
+}
+
+
