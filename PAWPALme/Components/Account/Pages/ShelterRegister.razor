@@ -1,0 +1,153 @@
+﻿@page "/Account/ShelterRegister"
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Identity
+@using PAWPALme.Data
+@using PAWPALme.Models
+@using PAWPALme.Services
+
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@inject RoleManager<IdentityRole> RoleManager
+@inject ShelterService ShelterService
+@inject ILogger<ShelterRegister> Logger
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Shelter Registration</PageTitle>
+
+<h1>Shelter Sign Up</h1>
+
+<StatusMessage Message="@errorMessage" />
+
+<EditForm Model="Input" method="post" OnValidSubmit="RegisterShelter" FormName="shelter-register">
+    <DataAnnotationsValidator />
+    <ValidationSummary class="text-danger" role="alert" />
+
+    <div class="form-floating mb-3">
+        <InputText @bind-Value="Input.ShelterName" class="form-control" placeholder="Shelter Name" />
+        <label>Shelter Name</label>
+        <ValidationMessage For="() => Input.ShelterName" class="text-danger" />
+    </div>
+
+    <div class="form-floating mb-3">
+        <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" placeholder="name@example.com" />
+        <label>Email</label>
+        <ValidationMessage For="() => Input.Email" class="text-danger" />
+    </div>
+
+    <div class="form-floating mb-3">
+        <InputText @bind-Value="Input.Phone" class="form-control" placeholder="Phone" />
+        <label>Phone (optional)</label>
+        <ValidationMessage For="() => Input.Phone" class="text-danger" />
+    </div>
+
+    <div class="form-floating mb-3">
+        <InputText @bind-Value="Input.Address" class="form-control" placeholder="Address" />
+        <label>Address (optional)</label>
+        <ValidationMessage For="() => Input.Address" class="text-danger" />
+    </div>
+
+    <div class="form-floating mb-3">
+        <InputTextArea @bind-Value="Input.Description" class="form-control" style="height: 120px" placeholder="Description"></InputTextArea>
+        <label>Description (optional)</label>
+        <ValidationMessage For="() => Input.Description" class="text-danger" />
+    </div>
+
+    <div class="form-floating mb-3">
+        <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="new-password" placeholder="password" />
+        <label>Password</label>
+        <ValidationMessage For="() => Input.Password" class="text-danger" />
+    </div>
+
+    <div class="form-floating mb-3">
+        <InputText type="password" @bind-Value="Input.ConfirmPassword" class="form-control" autocomplete="new-password" placeholder="password" />
+        <label>Confirm Password</label>
+        <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
+    </div>
+
+    <button type="submit" class="w-100 btn btn-lg btn-primary">Create Shelter Account</button>
+</EditForm>
+
+@code {
+    private string? errorMessage;
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    private async Task RegisterShelter()
+    {
+        errorMessage = null;
+
+        var user = new ApplicationUser
+        {
+            UserName = Input.Email,
+            Email = Input.Email
+        };
+
+        var createResult = await UserManager.CreateAsync(user, Input.Password);
+
+        if (!createResult.Succeeded)
+        {
+            errorMessage = string.Join(" ", createResult.Errors.Select(e => e.Description));
+            return;
+        }
+
+        // Ensure role exists
+        if (!await RoleManager.RoleExistsAsync("Shelter"))
+        {
+            await RoleManager.CreateAsync(new IdentityRole("Shelter"));
+        }
+
+        await UserManager.AddToRoleAsync(user, "Shelter");
+
+        // Create linked Shelter record
+        var shelter = new Shelter
+        {
+            Name = Input.ShelterName,
+            Phone = Input.Phone,
+            Address = Input.Address,
+            Description = Input.Description,
+            OwnerUserId = user.Id
+        };
+
+        await ShelterService.CreateShelterAsync(shelter);
+
+        await SignInManager.SignInAsync(user, isPersistent: false);
+        Logger.LogInformation("Shelter user created and signed in.");
+
+        RedirectManager.RedirectTo(ReturnUrl);
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [StringLength(120)]
+        public string ShelterName { get; set; } = "";
+
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = "";
+
+        [Phone]
+        [StringLength(30)]
+        public string? Phone { get; set; }
+
+        [StringLength(250)]
+        public string? Address { get; set; }
+
+        [StringLength(800)]
+        public string? Description { get; set; }
+
+        [Required]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = "";
+
+        [Required]
+        [DataType(DataType.Password)]
+        [Compare(nameof(Password), ErrorMessage = "Passwords do not match")]
+        public string ConfirmPassword { get; set; } = "";
+    }
+}

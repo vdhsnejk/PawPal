@@ -6,93 +6,59 @@ namespace PAWPALme.Services
 {
     public class ShelterService
     {
-        private readonly IDbContextFactory<ApplicationDbContext> _factory;
+        private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
 
-        public ShelterService(IDbContextFactory<ApplicationDbContext> factory)
+        public ShelterService(IDbContextFactory<ApplicationDbContext> dbFactory)
         {
-            _factory = factory;
+            _dbFactory = dbFactory;
         }
 
         public async Task<List<Shelter>> GetSheltersAsync()
         {
-            using var context = _factory.CreateDbContext();
-            return await context.Shelter.OrderBy(s => s.Name).ToListAsync();
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            return await db.Shelter
+                .OrderBy(s => s.Name)
+                .ToListAsync();
         }
 
-        public async Task<Shelter?> GetShelterByIdAsync(int id)
+        public async Task<Shelter?> GetShelterAsync(int id)
         {
-            using var context = _factory.CreateDbContext();
-            return await context.Shelter.FindAsync(id);
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            return await db.Shelter.FirstOrDefaultAsync(s => s.Id == id);
         }
 
         public async Task<Shelter?> GetShelterByOwnerUserIdAsync(string ownerUserId)
         {
-            using var context = _factory.CreateDbContext();
-            return await context.Shelter.FirstOrDefaultAsync(s => s.OwnerUserId == ownerUserId);
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            return await db.Shelter.FirstOrDefaultAsync(s => s.OwnerUserId == ownerUserId);
         }
 
-        public async Task<int> CreateOrUpdateShelterForOwnerAsync(
-            string ownerUserId,
-            string name,
-            string? address,
-            string? phone,
-            string? description)
+        public async Task<int> CreateShelterAsync(Shelter shelter)
         {
-            using var context = _factory.CreateDbContext();
-
-            var shelter = await context.Shelter.FirstOrDefaultAsync(s => s.OwnerUserId == ownerUserId);
-
-            if (shelter == null)
-            {
-                shelter = new Shelter
-                {
-                    OwnerUserId = ownerUserId,
-                    Name = name,
-                    Address = address,
-                    Phone = phone,
-                    Description = description
-                };
-                context.Shelter.Add(shelter);
-            }
-            else
-            {
-                shelter.Name = name;
-                shelter.Address = address;
-                shelter.Phone = phone;
-                shelter.Description = description;
-                context.Shelter.Update(shelter);
-            }
-
-            await context.SaveChangesAsync();
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            db.Shelter.Add(shelter);
+            await db.SaveChangesAsync();
             return shelter.Id;
-        }
-
-        public async Task AddShelterAsync(Shelter shelter)
-        {
-            using var context = _factory.CreateDbContext();
-            context.Shelter.Add(shelter);
-            await context.SaveChangesAsync();
         }
 
         public async Task UpdateShelterAsync(Shelter shelter)
         {
-            using var context = _factory.CreateDbContext();
-            context.Shelter.Update(shelter);
-            await context.SaveChangesAsync();
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            db.Shelter.Update(shelter);
+            await db.SaveChangesAsync();
         }
 
         public async Task DeleteShelterAsync(int id)
         {
-            using var context = _factory.CreateDbContext();
-            var shelter = await context.Shelter.FindAsync(id);
-            var hasPets = await context.Pet.AnyAsync(p => p.ShelterId == id);
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var shelter = await db.Shelter.FirstOrDefaultAsync(s => s.Id == id);
+            if (shelter is null) return;
 
-            if (shelter != null && !hasPets)
-            {
-                context.Shelter.Remove(shelter);
-                await context.SaveChangesAsync();
-            }
+            db.Shelter.Remove(shelter);
+            await db.SaveChangesAsync();
         }
     }
 }
+
+
 

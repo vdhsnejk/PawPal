@@ -1,81 +1,233 @@
 ﻿@page "/admin/shelters"
-@using Microsoft.AspNetCore.Authorization
-@attribute [Authorize(Roles = "Admin")]
-@using PAWPALme.Models
-@using PAWPALme.Services
-@inject ShelterService ShelterService
-@inject NavigationManager Nav
 @rendermode InteractiveServer
 
-<PageTitle>Admin - Manage Shelters</PageTitle>
+@using PAWPALme.Services
+@using ShelterModel = PAWPALme.Models.Shelter
+@inject ShelterService ShelterService
+
+<PageTitle>Manage Shelters</PageTitle>
 
 <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Manage Shelters</h2>
-        <a href="/admin/shelters/add" class="btn btn-success">+ Add New Shelter</a>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Manage Shelters</h2>
+        <button class="btn btn-primary" @onclick="StartCreate">Create Shelter</button>
     </div>
 
-    @if (shelters is null)
+    @if (!string.IsNullOrWhiteSpace(error))
     {
-        <p>Loading...</p>
+        <div class="alert alert-danger">@error</div>
     }
-    else if (shelters.Count == 0)
+
+    @if (mode == ViewMode.List)
     {
-        <div class="alert alert-info">No shelters found.</div>
+        @if (items is null)
+        {
+            <p><em>Loading...</em></p>
+        }
+        else if (items.Count == 0)
+        {
+            <div class="alert alert-info">No shelters found.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped align-middle">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Address</th>
+                            <th>Phone</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var s in items)
+                        {
+                            <tr>
+                                <td>@s.Name</td>
+                                <td>@s.Address</td>
+                                <td>@s.Phone</td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => ViewDetails(s.Id)">Details</button>
+                                    <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => StartEdit(s.Id)">Edit</button>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => StartDelete(s.Id)">Delete</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
     }
     else
     {
-        <table class="table table-hover shadow-sm">
-            <thead class="table-light">
-                <tr>
-                    <th style="width: 70px;">ID</th>
-                    <th>Name</th>
-                    <th>Address</th>
-                    <th style="width: 220px;">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var s in shelters)
-                {
-                    <tr>
-                        <td>@s.Id</td>
-                        <td>@s.Name</td>
-                        <td>@s.Address</td>
-                        <td>
-                            <button class="btn btn-sm btn-primary me-2"
-                                    @onclick="@(() => GoEdit(s.Id))">
-                                Edit
-                            </button>
+        <div class="card">
+            <div class="card-body">
+                <h5 class="mb-3">@modeTitle</h5>
 
-                            <button class="btn btn-sm btn-danger"
-                                    @onclick="@(() => DeleteShelter(s.Id))">
-                                Delete
-                            </button>
-                        </td>
-                    </tr>
+                @if (mode == ViewMode.Details)
+                {
+                    <div class="mb-2"><strong>Name:</strong> @current.Name</div>
+                    <div class="mb-2"><strong>Address:</strong> @current.Address</div>
+                    <div class="mb-2"><strong>Phone:</strong> @current.Phone</div>
+                    <div class="mb-2"><strong>Description:</strong> @current.Description</div>
+                    <div class="mb-3"><strong>Linked UserId:</strong> @(current.ApplicationUserId ?? "-")</div>
+
+                    <button class="btn btn-secondary" @onclick="BackToList">Back</button>
                 }
-            </tbody>
-        </table>
+                else if (mode == ViewMode.Delete)
+                {
+                    <div class="alert alert-warning">
+                        Confirm delete shelter: <strong>@current.Name</strong>?
+                    </div>
+
+                    <button class="btn btn-danger me-2" @onclick="ConfirmDelete">Yes, delete</button>
+                    <button class="btn btn-secondary" @onclick="BackToList">Cancel</button>
+                }
+                else
+                {
+                    <EditForm Model="current" OnValidSubmit="Save">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary class="text-danger" />
+
+                        <div class="mb-3">
+                            <label class="form-label">Name</label>
+                            <InputText class="form-control" @bind-Value="current.Name" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Address</label>
+                            <InputText class="form-control" @bind-Value="current.Address" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Phone</label>
+                            <InputText class="form-control" @bind-Value="current.Phone" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <InputTextArea class="form-control" rows="3" @bind-Value="current.Description" />
+                        </div>
+
+                        <button class="btn btn-primary me-2" type="submit">Save</button>
+                        <button class="btn btn-secondary" type="button" @onclick="BackToList">Cancel</button>
+                    </EditForm>
+                }
+            </div>
+        </div>
     }
 </div>
 
 @code {
-    private List<Shelter>? shelters;
+    private enum ViewMode { List, Create, Edit, Details, Delete }
+
+    private List<ShelterModel>? items;
+    private string? error;
+
+    private ViewMode mode = ViewMode.List;
+    private string modeTitle = "";
+    private ShelterModel current = new();
 
     protected override async Task OnInitializedAsync()
     {
-        shelters = await ShelterService.GetSheltersAsync();
+        await Load();
     }
 
-    private void GoEdit(int id)
+    private async Task Load()
     {
-        Nav.NavigateTo($"/admin/shelters/edit/{id}");
+        error = null;
+        items = null;
+
+        try
+        {
+            items = await ShelterService.GetSheltersAsync();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+            items = new();
+        }
     }
 
-    private async Task DeleteShelter(int id)
+    private void StartCreate()
     {
-        await ShelterService.DeleteShelterAsync(id);
-        shelters = await ShelterService.GetSheltersAsync();
+        mode = ViewMode.Create;
+        modeTitle = "Create Shelter";
+        current = new ShelterModel();
+    }
+
+    private async Task StartEdit(int id)
+    {
+        var s = await ShelterService.GetShelterByIdAsync(id);
+        if (s is null) return;
+
+        mode = ViewMode.Edit;
+        modeTitle = "Edit Shelter";
+        current = s;
+    }
+
+    private async Task ViewDetails(int id)
+    {
+        var s = await ShelterService.GetShelterByIdAsync(id);
+        if (s is null) return;
+
+        mode = ViewMode.Details;
+        modeTitle = "Shelter Details";
+        current = s;
+    }
+
+    private async Task StartDelete(int id)
+    {
+        var s = await ShelterService.GetShelterByIdAsync(id);
+        if (s is null) return;
+
+        mode = ViewMode.Delete;
+        modeTitle = "Delete Shelter";
+        current = s;
+    }
+
+    private async Task Save()
+    {
+        error = null;
+
+        try
+        {
+            if (mode == ViewMode.Create)
+                await ShelterService.AddShelterAsync(current);
+            else if (mode == ViewMode.Edit)
+                await ShelterService.UpdateShelterAsync(current);
+
+            await Load();
+            BackToList();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+    }
+
+    private async Task ConfirmDelete()
+    {
+        error = null;
+
+        try
+        {
+            await ShelterService.DeleteShelterAsync(current.Id);
+            await Load();
+            BackToList();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+    }
+
+    private void BackToList()
+    {
+        mode = ViewMode.List;
+        modeTitle = "";
     }
 }
+
 

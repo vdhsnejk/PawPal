@@ -5,18 +5,26 @@ using Microsoft.EntityFrameworkCore;
 using PAWPALme.Components;
 using PAWPALme.Components.Account;
 using PAWPALme.Data;
+using PAWPALme.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddCascadingAuthenticationState();
-builder.Services.AddAuthorization();
-
 builder.Services.AddScoped<IdentityUserAccessor>();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
+
+builder.Services.AddAuthorization();
+builder.Services.AddAntiforgery();
+
+// Register Repositories
+builder.Services.AddScoped<IPetRepository, PetRepository>();
+builder.Services.AddScoped<IShelterRepository, ShelterRepository>();
+builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
@@ -27,19 +35,12 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-builder.Services.AddQuickGridEntityFrameworkAdapter();
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultScheme = IdentityConstants.ApplicationScheme;
-    options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
-})
-.AddIdentityCookies();
+builder.Services.AddQuickGridEntityFrameworkAdapter(); 
 
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
 {
-    // KEY FIX: allow login without email confirmation
     options.SignIn.RequireConfirmedAccount = false;
 })
 .AddRoles<IdentityRole>()
@@ -49,13 +50,16 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
-// your app services (keep if you already have them)
-builder.Services.AddScoped<PAWPALme.Services.PetService>();
-builder.Services.AddScoped<PAWPALme.Services.ShelterService>();
-builder.Services.AddScoped<PAWPALme.Services.AppointmentService>();
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = IdentityConstants.ApplicationScheme;
+    options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
+})
+.AddIdentityCookies();
 
 var app = builder.Build();
 
+// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseMigrationsEndPoint();
@@ -64,7 +68,6 @@ else
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts();
-    app.UseMigrationsEndPoint();
 }
 
 app.UseHttpsRedirection();
@@ -75,12 +78,27 @@ app.UseAuthorization();
 
 app.UseAntiforgery();
 
+// Seed Roles
+using (var scope = app.Services.CreateScope())
+{
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    string[] roles = ["Admin", "Shelter", "Adopter"];
+    foreach (var r in roles)
+    {
+        if (!await roleManager.RoleExistsAsync(r))
+            await roleManager.CreateAsync(new IdentityRole(r));
+    }
+}
+
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.MapAdditionalIdentityEndpoints();
 
 app.Run();
+
+
+
 
 
 

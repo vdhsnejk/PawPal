@@ -1,90 +1,303 @@
 ﻿@page "/admin/pets"
-@using Microsoft.AspNetCore.Authorization
-@attribute [Authorize(Roles = "Admin")]
-@using PAWPALme.Models
-@using PAWPALme.Services
-@inject PetService PetService
-@inject NavigationManager Nav
 @rendermode InteractiveServer
 
-<PageTitle>Admin - Manage Pets</PageTitle>
+@using PAWPALme.Models
+@using PAWPALme.Services
+
+@inject PetService PetService
+@inject ShelterService ShelterService
+
+<PageTitle>Manage Pets</PageTitle>
 
 <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Manage Pets</h2>
-        <a href="/admin/pets/add" class="btn btn-success">+ Add New Pet</a>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Manage Pets</h2>
+        <button class="btn btn-primary" @onclick="StartCreate">Create Pet</button>
     </div>
 
-    @if (pets is null)
+    @if (!string.IsNullOrWhiteSpace(error))
     {
-        <p>Loading...</p>
+        <div class="alert alert-danger">@error</div>
     }
-    else if (pets.Count == 0)
+
+    @if (mode == ViewMode.List)
     {
-        <div class="alert alert-info">No pets found.</div>
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="row g-2">
+                    <div class="col-12 col-md-4">
+                        <input class="form-control" placeholder="Search by name..." @bind="searchTerm" />
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <select class="form-select" @bind="species">
+                            <option value="All">All species</option>
+                            <option value="Dog">Dog</option>
+                            <option value="Cat">Cat</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <input class="form-control" placeholder="Breed (optional)" @bind="breed" />
+                    </div>
+                    <div class="col-12 col-md-2 d-grid">
+                        <button class="btn btn-outline-secondary" @onclick="Load">Apply</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (pets is null)
+        {
+            <p><em>Loading...</em></p>
+        }
+        else if (pets.Count == 0)
+        {
+            <div class="alert alert-info">No pets found.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped align-middle">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Species</th>
+                            <th>Breed</th>
+                            <th>Age</th>
+                            <th>Status</th>
+                            <th>ShelterId</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in pets)
+                        {
+                            <tr>
+                                <td>@p.Name</td>
+                                <td>@p.Species</td>
+                                <td>@p.Breed</td>
+                                <td>@p.Age</td>
+                                <td>@p.Status</td>
+                                <td>@p.ShelterId</td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => ViewDetails(p.Id)">Details</button>
+                                    <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => StartEdit(p.Id)">Edit</button>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => StartDelete(p.Id)">Delete</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
     }
     else
     {
-        <table class="table table-hover shadow-sm">
-            <thead class="table-light">
-                <tr>
-                    <th style="width: 70px;">ID</th>
-                    <th>Name</th>
-                    <th>Species</th>
-                    <th>Breed</th>
-                    <th style="width: 70px;">Age</th>
-                    <th style="width: 110px;">Status</th>
-                    <th style="width: 220px;">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var pet in pets)
-                {
-                    <tr>
-                        <td>@pet.Id</td>
-                        <td>@pet.Name</td>
-                        <td>@pet.Species</td>
-                        <td>@pet.Breed</td>
-                        <td>@pet.Age</td>
-                        <td>@pet.Status</td>
-                        <td>
-                            <button class="btn btn-sm btn-primary me-2"
-                                    @onclick="@(() => GoEdit(pet.Id))">
-                                Edit
-                            </button>
+        <div class="card">
+            <div class="card-body">
+                <h5 class="mb-3">@modeTitle</h5>
 
-                            <button class="btn btn-sm btn-danger"
-                                    @onclick="@(() => DeletePet(pet.Id))">
-                                Delete
-                            </button>
-                        </td>
-                    </tr>
+                @if (mode == ViewMode.Details)
+                {
+                    <div class="mb-2"><strong>Name:</strong> @current.Name</div>
+                    <div class="mb-2"><strong>Species:</strong> @current.Species</div>
+                    <div class="mb-2"><strong>Breed:</strong> @current.Breed</div>
+                    <div class="mb-2"><strong>Age:</strong> @current.Age</div>
+                    <div class="mb-2"><strong>Status:</strong> @current.Status</div>
+                    <div class="mb-3"><strong>ShelterId:</strong> @current.ShelterId</div>
+
+                    <button class="btn btn-secondary" @onclick="BackToList">Back</button>
                 }
-            </tbody>
-        </table>
+                else if (mode == ViewMode.Delete)
+                {
+                    <div class="alert alert-warning">
+                        Confirm delete pet: <strong>@current.Name</strong>?
+                    </div>
+
+                    <button class="btn btn-danger me-2" @onclick="ConfirmDelete">Yes, delete</button>
+                    <button class="btn btn-secondary" @onclick="BackToList">Cancel</button>
+                }
+                else
+                {
+                    <EditForm Model="current" OnValidSubmit="Save">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary class="text-danger" />
+
+                        <div class="mb-3">
+                            <label class="form-label">Name</label>
+                            <InputText class="form-control" @bind-Value="current.Name" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Species</label>
+                            <InputSelect class="form-select" @bind-Value="current.Species">
+                                <option value="Dog">Dog</option>
+                                <option value="Cat">Cat</option>
+                            </InputSelect>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Breed</label>
+                            <InputText class="form-control" @bind-Value="current.Breed" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Age</label>
+                            <InputNumber class="form-control" @bind-Value="current.Age" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Status</label>
+                            <InputText class="form-control" @bind-Value="current.Status" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Shelter</label>
+                            <InputSelect class="form-select" @bind-Value="current.ShelterId">
+                                @foreach (var s in shelters)
+                                {
+                                    <option value="@s.Id">@s.Name</option>
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <button class="btn btn-primary me-2" type="submit">Save</button>
+                        <button class="btn btn-secondary" type="button" @onclick="BackToList">Cancel</button>
+                    </EditForm>
+                }
+            </div>
+        </div>
     }
 </div>
 
 @code {
+    private enum ViewMode { List, Create, Edit, Details, Delete }
+
     private List<Pet>? pets;
+    private List<Shelter> shelters = new();
+    private string? error;
+
+    private string? searchTerm;
+    private string species = "All";
+    private string? breed;
+
+    private ViewMode mode = ViewMode.List;
+    private string modeTitle = "";
+    private Pet current = new();
 
     protected override async Task OnInitializedAsync()
     {
-        // Your PetService requires 5 parameters:
-        // (searchTerm, species, breed, minAge, shelterId)
-        pets = await PetService.GetPetsAsync(null, null, null, null, null);
+        await LoadShelters();
+        await Load();
     }
 
-    private void GoEdit(int id)
+    private async Task LoadShelters()
     {
-        // Avoid Razor parsing issues by building the string here in C#
-        Nav.NavigateTo($"/admin/pets/edit/{id}");
+        shelters = await ShelterService.GetSheltersAsync();
+        if (shelters.Count == 0)
+        {
+            // Keep page usable even if none exist
+            shelters = new List<Shelter> { new Shelter { Id = 1, Name = "Default Shelter" } };
+        }
     }
 
-    private async Task DeletePet(int id)
+    private async Task Load()
     {
-        await PetService.DeletePetAsync(id);
-        pets = await PetService.GetPetsAsync(null, null, null, null, null);
+        error = null;
+        pets = null;
+
+        try
+        {
+            pets = await PetService.GetPetsAsync(searchTerm, species, breed, null, null);
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+            pets = new();
+        }
+    }
+
+    private void StartCreate()
+    {
+        mode = ViewMode.Create;
+        modeTitle = "Create Pet";
+        current = new Pet
+        {
+            Species = "Dog",
+            Status = "Available",
+            ShelterId = shelters.FirstOrDefault()?.Id ?? 1
+        };
+    }
+
+    private async Task StartEdit(int id)
+    {
+        var p = await PetService.GetPetByIdAsync(id);
+        if (p is null) return;
+
+        mode = ViewMode.Edit;
+        modeTitle = "Edit Pet";
+        current = p;
+    }
+
+    private async Task ViewDetails(int id)
+    {
+        var p = await PetService.GetPetByIdAsync(id);
+        if (p is null) return;
+
+        mode = ViewMode.Details;
+        modeTitle = "Pet Details";
+        current = p;
+    }
+
+    private async Task StartDelete(int id)
+    {
+        var p = await PetService.GetPetByIdAsync(id);
+        if (p is null) return;
+
+        mode = ViewMode.Delete;
+        modeTitle = "Delete Pet";
+        current = p;
+    }
+
+    private async Task Save()
+    {
+        error = null;
+
+        try
+        {
+            if (mode == ViewMode.Create)
+                await PetService.AddPetAsync(current);
+            else if (mode == ViewMode.Edit)
+                await PetService.UpdatePetAsync(current);
+
+            await Load();
+            BackToList();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+    }
+
+    private async Task ConfirmDelete()
+    {
+        error = null;
+
+        try
+        {
+            await PetService.DeletePetAsync(current.Id);
+            await Load();
+            BackToList();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+    }
+
+    private void BackToList()
+    {
+        mode = ViewMode.List;
+        modeTitle = "";
     }
 }
 

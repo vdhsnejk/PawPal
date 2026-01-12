@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using PAWPALme.Enums;
 
 namespace PAWPALme.Models
 {
@@ -9,31 +10,29 @@ namespace PAWPALme.Models
         public int Id { get; set; }
 
         [Required]
-        public DateTime AppointmentDate { get; set; } = DateTime.Now.AddDays(1);
+        [DataType(DataType.Date)]
+        public DateTime AppointmentDate { get; set; }
 
         [Required]
-        public string Status { get; set; } = "Pending"; // Pending, Confirmed, Rejected, Completed
+        [DataType(DataType.Time)]
+        public TimeSpan AppointmentTime { get; set; }
 
-        // --- ADOPTER DETAILS ---
-        [Required(ErrorMessage = "Please enter your name")]
-        public string AdopterName { get; set; } = "";
+        [Required]
+        public AppointmentStatus Status { get; set; } = AppointmentStatus.Pending;
 
-        [Required(ErrorMessage = "Please enter your email")]
-        [EmailAddress]
-        public string AdopterEmail { get; set; } = "";
+        [StringLength(500)]
+        public string? Notes { get; set; }
 
         // --- RELATIONS ---
+        // An appointment MUST be linked to an application.
+        // This is the "Handshake" with Nicole's side.
+        [Required]
+        public int AdoptionApplicationId { get; set; }
 
-        // Link to the Registered User (Nullable, in case we allow guest checkout, 
-        // but for high marks we prefer logged in users)
-        public string? UserId { get; set; }
+        [ForeignKey("AdoptionApplicationId")]
+        public virtual AdoptionApplication? AdoptionApplication { get; set; }
 
-        [ForeignKey("UserId")]
-        public virtual PAWPALme.Data.ApplicationUser? User { get; set; }
-
-        public int PetId { get; set; }
-
-        [ForeignKey("PetId")]
-        public virtual Pet? Pet { get; set; }
+        // This tracks WHO (Shelter Staff) managed/updated this appointment
+        public string? ManagedByUserId { get; set; }
     }
 }
