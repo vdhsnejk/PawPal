@@ -9,5 +9,8 @@ namespace PAWPALme.Repositories
         Task AddAsync(Shelter shelter);
         Task UpdateAsync(Shelter shelter);
         Task<bool> UserHasShelterAsync(string userId);
+
+        // REQUIRED for the list page
+        Task<IEnumerable<Shelter>> GetAllAsync();
     }
 }

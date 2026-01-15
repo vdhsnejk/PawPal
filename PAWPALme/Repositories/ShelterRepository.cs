@@ -44,5 +44,12 @@ namespace PAWPALme.Repositories
             using var context = _factory.CreateDbContext();
             return await context.Shelter.AnyAsync(s => s.OwnerUserId == userId);
         }
+
+        // NEW: Fetch all shelters for the public list
+        public async Task<IEnumerable<Shelter>> GetAllAsync()
+        {
+            using var context = _factory.CreateDbContext();
+            return await context.Shelter.ToListAsync();
+        }
     }
 }

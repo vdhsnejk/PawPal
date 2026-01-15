@@ -1,0 +1,20 @@
+﻿@page "/shelter/success"
+
+<PageTitle>Registration Successful</PageTitle>
+
+<div class="container mt-5 text-center">
+    <div class="card shadow-sm border-success mx-auto" style="max-width: 500px;">
+        <div class="card-body p-5">
+            <h1 class="text-success display-4 mb-3"><i class="bi bi-check-circle-fill"></i></h1>
+            <h2 class="card-title text-success">Account Created!</h2>
+            <p class="lead mt-3">
+                Your shelter has been registered successfully.
+            </p>
+            <hr />
+            @* Hard link to force refresh *@
+            <a href="Account/Login" class="btn btn-primary btn-lg w-100">
+                Proceed to Login
+            </a>
+        </div>
+    </div>
+</div>

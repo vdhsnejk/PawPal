@@ -3,45 +3,38 @@
 @using PAWPALme.Models
 @using PAWPALme.Repositories
 @inject IShelterRepository ShelterRepo
-@inject NavigationManager Nav
 
 <PageTitle>Our Shelters</PageTitle>
 
 <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="mb-0">Partner Shelters</h2>
-        <a class="btn btn-outline-primary" href="/shelter/register">Register Your Shelter</a>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Our Partner Shelters</h2>
+        <a href="shelter/register" class="btn btn-outline-success">
+            <i class="bi bi-plus-lg"></i> Register New Shelter
+        </a>
     </div>
 
-    @if (shelters is null)
+    @if (shelters == null)
     {
-        <p><em>Loading...</em></p>
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
     }
     else if (!shelters.Any())
     {
-        <div class="alert alert-info">No shelters registered yet.</div>
+        <div class="alert alert-info">No shelters registered yet. Be the first!</div>
     }
     else
     {
-        <div class="row g-3">
+        <div class="row g-4">
             @foreach (var s in shelters)
             {
-                <div class="col-12 col-md-6 col-lg-4">
+                <div class="col-md-4">
                     <div class="card h-100 shadow-sm">
                         <div class="card-body">
-                            <h5 class="card-title mb-1">@s.Name</h5>
-                            @if (!string.IsNullOrWhiteSpace(s.Address))
-                            {
-                                <div class="text-muted small mb-2">@s.Address</div>
-                            }
-                            @if (!string.IsNullOrWhiteSpace(s.Phone))
-                            {
-                                <div class="small"><strong>Phone:</strong> @s.Phone</div>
-                            }
-                            @if (!string.IsNullOrWhiteSpace(s.Description))
-                            {
-                                <div class="small mt-2 text-muted">@s.Description</div>
-                            }
+                            <h5 class="card-title">@s.Name</h5>
+                            <p class="card-text text-muted">@s.Address</p>
+                            <p class="card-text"><i class="bi bi-telephone"></i> @s.Phone</p>
                         </div>
                     </div>
                 </div>
@@ -55,6 +48,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        shelters = new List<Shelter>();
+        shelters = await ShelterRepo.GetAllAsync();
     }
 }
