@@ -1,4 +1,6 @@
 ﻿@page "/shelter/appointments"
+@rendermode InteractiveServer
+
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Identity
 @using PAWPALme.Models
@@ -15,9 +17,7 @@
 
     @if (appointments == null)
     {
-        <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
-        </div>
+        <div class="spinner-border text-primary" role="status"></div>
     }
     else if (!appointments.Any())
     {
@@ -26,11 +26,11 @@
     else
     {
         <div class="table-responsive">
-            <table class="table align-middle">
+            <table class="table align-middle table-hover">
                 <thead class="table-light">
                     <tr>
-                        <th>Date</th>
-                        <th>Time</th>
+                        <th>Date/Time</th>
+                        <th>Applicant</th>
                         <th>Pet</th>
                         <th>Status</th>
                         <th>Actions</th>
@@ -40,19 +40,24 @@
                     @foreach (var appt in appointments)
                     {
                         <tr>
-                            <td>@appt.AppointmentDate.ToShortDateString()</td>
-                            <td>@appt.AppointmentTime.ToString(@"hh\:mm")</td>
+                            <td>
+                                <div>@appt.AppointmentDate.ToShortDateString()</div>
+                                <small class="text-muted">@appt.AppointmentTime.ToString(@"hh\:mm")</small>
+                            </td>
+                            <td>
+                                <strong>@(appt.AdoptionApplication?.ApplicantName ?? "Unknown")</strong>
+                                <br />
+                                <button class="btn btn-link btn-sm p-0" @onclick="() => ViewDetails(appt)">View Details</button>
+                            </td>
                             <td>@appt.Pet?.Name</td>
                             <td>
-                                @* FIX 1: Pass the Enum directly to the helper method *@
                                 <span class="badge @GetBadgeClass(appt.Status)">@appt.Status</span>
                             </td>
                             <td>
-                                @* FIX 2: Compare using the Enum type, NOT a string *@
                                 @if (appt.Status == AppointmentStatus.Pending)
                                 {
-                                    <button class="btn btn-sm btn-success me-2" @onclick="() => UpdateStatus(appt, AppointmentStatus.Confirmed)">Approve</button>
-                                    <button class="btn btn-sm btn-danger" @onclick="() => UpdateStatus(appt, AppointmentStatus.Cancelled)">Deny</button>
+                                    <button class="btn btn-sm btn-success me-1" @onclick="() => UpdateStatus(appt, AppointmentStatus.Confirmed)">Accept</button>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => UpdateStatus(appt, AppointmentStatus.Cancelled)">Deny</button>
                                 }
                             </td>
                         </tr>
@@ -63,9 +68,37 @@
     }
 </div>
 
+@if (selectedAppointment != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Application Details</h5>
+                    <button type="button" class="btn-close" @onclick="CloseDetails"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Applicant:</strong> @(selectedAppointment.AdoptionApplication?.ApplicantName ?? "N/A")</p>
+                    <p><strong>Email:</strong> @(selectedAppointment.AdoptionApplication?.ApplicantEmail ?? "N/A")</p>
+                    <hr />
+                    <p><strong>Interest In:</strong> @(selectedAppointment.Pet?.Name)</p>
+                    <p><strong>Notes from User:</strong></p>
+                    <div class="p-3 bg-light rounded">
+                        @(string.IsNullOrWhiteSpace(selectedAppointment.Notes) ? "No notes provided." : selectedAppointment.Notes)
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseDetails">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private IEnumerable<Appointment>? appointments;
     private ApplicationUser? currentUser;
+    private Appointment? selectedAppointment;
 
     protected override async Task OnInitializedAsync()
     {
@@ -78,20 +111,27 @@
         }
     }
 
-    // FIX 3: Signature accepts AppointmentStatus Enum
     private async Task UpdateStatus(Appointment appt, AppointmentStatus status)
     {
         appt.Status = status;
         await ApptRepo.UpdateAsync(appt);
 
-        // Refresh the list after update
         if (currentUser?.ShelterId != null)
         {
             appointments = await ApptRepo.GetByShelterIdAsync(currentUser.ShelterId.Value);
         }
     }
 
-    // FIX 4: Helper method switches on Enum
+    private void ViewDetails(Appointment appt)
+    {
+        selectedAppointment = appt;
+    }
+
+    private void CloseDetails()
+    {
+        selectedAppointment = null;
+    }
+
     private string GetBadgeClass(AppointmentStatus status) => status switch
     {
         AppointmentStatus.Confirmed => "bg-success",

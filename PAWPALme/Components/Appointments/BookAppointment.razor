@@ -100,6 +100,7 @@
             }
         }
     }
+    // ... inside the @code block ...
 
     private async Task SaveAppointment()
     {
@@ -108,8 +109,7 @@
         var user = await UserManager.GetUserAsync(authState.User);
         var userId = user?.Id;
 
-        // 2. Create the Application Stub (Requirement for Appointment)
-        // Since we are simulating, we create a lightweight application record.
+        // 2. Create the Application Stub
         var appStub = new AdoptionApplication
         {
             ApplicantName = Input.ApplicantName,
@@ -119,10 +119,8 @@
             ApplicationDate = DateTime.Now,
             Status = ApplicationStatus.Pending
         };
-        // Note: In a full system, you might save this App Stub to DB first.
-        // For now, we rely on the Appointment -> Pet link we added.
 
-        // 3. Create the Appointment
+        // 3. Create the Appointment AND LINK THE APPLICATION
         var appointment = new Appointment
         {
             AppointmentDate = Input.Date,
@@ -132,7 +130,9 @@
             PetId = PetId,
             ShelterId = shelterId,
             AdopterUserId = userId,
-            // AdoptionApplication = appStub // Optional: Link if you save appStub
+
+            // FIX: This links the two objects so they save together!
+            AdoptionApplication = appStub
         };
 
         await ApptRepo.AddAsync(appointment);

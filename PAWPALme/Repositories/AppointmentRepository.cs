@@ -33,6 +33,7 @@ namespace PAWPALme.Repositories
             return await context.Appointment
                 .Include(a => a.Pet)
                 .Include(a => a.Shelter)
+                .Include(a => a.AdoptionApplication) // <--- ADD THIS
                 .FirstOrDefaultAsync(a => a.Id == id);
         }
 
@@ -41,6 +42,7 @@ namespace PAWPALme.Repositories
             using var context = _factory.CreateDbContext();
             return await context.Appointment
                 .Include(a => a.Pet)
+                .Include(a => a.AdoptionApplication) // <--- CRITICAL: Fetch Applicant Details
                 .Where(a => a.ShelterId == shelterId)
                 .OrderByDescending(a => a.AppointmentDate)
                 .ToListAsync();
