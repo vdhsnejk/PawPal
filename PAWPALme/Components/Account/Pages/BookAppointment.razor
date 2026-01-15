@@ -5,6 +5,7 @@
 @inject IAppointmentRepository ApptRepo
 @inject IPetRepository PetRepo
 @inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Book a Visit</PageTitle>
 
@@ -62,9 +63,7 @@
     private AdoptionApplication applicationStub = new();
     private string petName = "your new friend";
 
-    // --- FIX: Time Binding Helper ---
-    // The HTML input returns a DateTime, but our model needs a TimeSpan.
-    // This property handles the conversion automatically.
+ 
     private DateTime AppointmentTimeBinder
     {
         get => DateTime.Today.Add(appointment.AppointmentTime);
@@ -81,9 +80,23 @@
             appointment.AdoptionApplication = applicationStub;
         }
 
+        // ✅ FIX: Link to Logged-in User
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated ?? false)
+        {
+            // Get the User ID from Claims
+            var userId = user.FindFirst(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            applicationStub.UserId = userId;
+
+            // Optional: Pre-fill name/email if you have those claims
+            applicationStub.ApplicantName = user.FindFirst("FullName")?.Value ?? user.Identity.Name;
+            applicationStub.ApplicantEmail = user.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+        }
+
         // Defaults
         appointment.AppointmentDate = DateTime.Now.AddDays(1);
-        appointment.AppointmentTime = new TimeSpan(10, 0, 0); // 10:00 AM
+        appointment.AppointmentTime = new TimeSpan(10, 0, 0);
     }
 
     private async Task SaveAppointment()
