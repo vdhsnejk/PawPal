@@ -1,26 +1,23 @@
 ﻿@page "/shelters"
 @rendermode InteractiveServer
-@using PAWPALme.Services
-@using ShelterModel = PAWPALme.Models.Shelter
-@inject ShelterService ShelterService
+@using PAWPALme.Models
+@using PAWPALme.Repositories
+@inject IShelterRepository ShelterRepo
+@inject NavigationManager Nav
 
-<PageTitle>Shelters</PageTitle>
+<PageTitle>Our Shelters</PageTitle>
 
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="mb-0">Shelters</h2>
-        <a class="btn btn-outline-primary" href="/auth">Shelter login / signup</a>
+        <h2 class="mb-0">Partner Shelters</h2>
+        <a class="btn btn-outline-primary" href="/shelter/register">Register Your Shelter</a>
     </div>
 
-    @if (!string.IsNullOrWhiteSpace(error))
-    {
-        <div class="alert alert-danger">@error</div>
-    }
-    else if (shelters is null)
+    @if (shelters is null)
     {
         <p><em>Loading...</em></p>
     }
-    else if (shelters.Count == 0)
+    else if (!shelters.Any())
     {
         <div class="alert alert-info">No shelters registered yet.</div>
     }
@@ -33,17 +30,14 @@
                     <div class="card h-100 shadow-sm">
                         <div class="card-body">
                             <h5 class="card-title mb-1">@s.Name</h5>
-
                             @if (!string.IsNullOrWhiteSpace(s.Address))
                             {
                                 <div class="text-muted small mb-2">@s.Address</div>
                             }
-
                             @if (!string.IsNullOrWhiteSpace(s.Phone))
                             {
                                 <div class="small"><strong>Phone:</strong> @s.Phone</div>
                             }
-
                             @if (!string.IsNullOrWhiteSpace(s.Description))
                             {
                                 <div class="small mt-2 text-muted">@s.Description</div>
@@ -57,19 +51,10 @@
 </div>
 
 @code {
-    private List<ShelterModel>? shelters;
-    private string? error;
+    private IEnumerable<Shelter>? shelters;
 
     protected override async Task OnInitializedAsync()
     {
-        try
-        {
-            shelters = await ShelterService.GetSheltersAsync();
-        }
-        catch (Exception ex)
-        {
-            error = ex.Message;
-            shelters = new();
-        }
+        shelters = new List<Shelter>();
     }
 }

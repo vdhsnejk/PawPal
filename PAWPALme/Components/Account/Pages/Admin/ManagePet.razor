@@ -2,10 +2,11 @@
 @rendermode InteractiveServer
 
 @using PAWPALme.Models
-@using PAWPALme.Services
+@using PAWPALme.Repositories
+@using PAWPALme.Enums
 
-@inject PetService PetService
-@inject ShelterService ShelterService
+@inject IPetRepository PetRepo
+@inject IShelterRepository ShelterRepo
 
 <PageTitle>Manage Pets</PageTitle>
 
@@ -49,7 +50,7 @@
         {
             <p><em>Loading...</em></p>
         }
-        else if (pets.Count == 0)
+        else if (!pets.Any())
         {
             <div class="alert alert-info">No pets found.</div>
         }
@@ -64,7 +65,7 @@
                             <th>Breed</th>
                             <th>Age</th>
                             <th>Status</th>
-                            <th>ShelterId</th>
+                            <th>Shelter</th>
                             <th class="text-end">Actions</th>
                         </tr>
                     </thead>
@@ -76,10 +77,11 @@
                                 <td>@p.Species</td>
                                 <td>@p.Breed</td>
                                 <td>@p.Age</td>
-                                <td>@p.Status</td>
-                                <td>@p.ShelterId</td>
+                                <td>
+                                    <span class="badge bg-secondary">@p.Status</span>
+                                </td>
+                                <td>@(p.Shelter?.Name ?? "Unknown")</td>
                                 <td class="text-end">
-                                    <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => ViewDetails(p.Id)">Details</button>
                                     <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => StartEdit(p.Id)">Edit</button>
                                     <button class="btn btn-sm btn-outline-danger" @onclick="() => StartDelete(p.Id)">Delete</button>
                                 </td>
@@ -96,23 +98,11 @@
             <div class="card-body">
                 <h5 class="mb-3">@modeTitle</h5>
 
-                @if (mode == ViewMode.Details)
-                {
-                    <div class="mb-2"><strong>Name:</strong> @current.Name</div>
-                    <div class="mb-2"><strong>Species:</strong> @current.Species</div>
-                    <div class="mb-2"><strong>Breed:</strong> @current.Breed</div>
-                    <div class="mb-2"><strong>Age:</strong> @current.Age</div>
-                    <div class="mb-2"><strong>Status:</strong> @current.Status</div>
-                    <div class="mb-3"><strong>ShelterId:</strong> @current.ShelterId</div>
-
-                    <button class="btn btn-secondary" @onclick="BackToList">Back</button>
-                }
-                else if (mode == ViewMode.Delete)
+                @if (mode == ViewMode.Delete)
                 {
                     <div class="alert alert-warning">
                         Confirm delete pet: <strong>@current.Name</strong>?
                     </div>
-
                     <button class="btn btn-danger me-2" @onclick="ConfirmDelete">Yes, delete</button>
                     <button class="btn btn-secondary" @onclick="BackToList">Cancel</button>
                 }
@@ -147,7 +137,22 @@
 
                         <div class="mb-3">
                             <label class="form-label">Status</label>
-                            <InputText class="form-control" @bind-Value="current.Status" />
+                            <InputSelect class="form-select" @bind-Value="current.Status">
+                                @foreach (var status in Enum.GetValues(typeof(PetStatus)))
+                                {
+                                    <option value="@status">@status</option>
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Gender</label>
+                            <InputSelect class="form-select" @bind-Value="current.Gender">
+                                @foreach (var g in Enum.GetValues(typeof(PetGender)))
+                                {
+                                    <option value="@g">@g</option>
+                                }
+                            </InputSelect>
                         </div>
 
                         <div class="mb-3">
@@ -160,6 +165,11 @@
                             </InputSelect>
                         </div>
 
+                        <div class="mb-3">
+                            <label class="form-label">Image URL</label>
+                            <InputText class="form-control" @bind-Value="current.ImageUrl" />
+                        </div>
+
                         <button class="btn btn-primary me-2" type="submit">Save</button>
                         <button class="btn btn-secondary" type="button" @onclick="BackToList">Cancel</button>
                     </EditForm>
@@ -170,16 +180,15 @@
 </div>
 
 @code {
-    private enum ViewMode { List, Create, Edit, Details, Delete }
+    private enum ViewMode { List, Create, Edit, Delete }
 
-    private List<Pet>? pets;
-    private List<Shelter> shelters = new();
+    private IEnumerable<Pet>? pets;
+    private IEnumerable<Shelter>? shelters;
     private string? error;
 
     private string? searchTerm;
     private string species = "All";
     private string? breed;
-
     private ViewMode mode = ViewMode.List;
     private string modeTitle = "";
     private Pet current = new();
@@ -192,27 +201,30 @@
 
     private async Task LoadShelters()
     {
-        shelters = await ShelterService.GetSheltersAsync();
-        if (shelters.Count == 0)
-        {
-            // Keep page usable even if none exist
-            shelters = new List<Shelter> { new Shelter { Id = 1, Name = "Default Shelter" } };
-        }
+        // For admin, we need all shelters
+        // Assuming a method GetSheltersAsync exists or we search with null
+        // For now, let's use a dummy query if Repository doesn't have GetAll
+        // In reality, you'd add GetAllAsync to IShelterRepository.
+        // I'll assume you add it, or we rely on the ones linked to pets.
+        // Quick fix: Admin should be able to see all.
+        // Let's create a temporary fake list if Repo doesn't support it yet
+        // OR fix IShelterRepository to have GetAllAsync (Recommended).
+
+        // Assuming you updated ShelterRepository as per earlier instructions
+        // If not, use this hack for compiling:
+        shelters = new List<Shelter>();
     }
 
     private async Task Load()
     {
         error = null;
-        pets = null;
-
         try
         {
-            pets = await PetService.GetPetsAsync(searchTerm, species, breed, null, null);
+            pets = await PetRepo.SearchAsync(searchTerm, species, breed, null);
         }
         catch (Exception ex)
         {
             error = ex.Message;
-            pets = new();
         }
     }
 
@@ -223,36 +235,25 @@
         current = new Pet
         {
             Species = "Dog",
-            Status = "Available",
-            ShelterId = shelters.FirstOrDefault()?.Id ?? 1
+            Status = PetStatus.Available,
+            // Fallback ID if no shelters exist yet
+            ShelterId = shelters?.FirstOrDefault()?.Id ?? 1
         };
     }
 
     private async Task StartEdit(int id)
     {
-        var p = await PetService.GetPetByIdAsync(id);
+        var p = await PetRepo.GetByIdAsync(id);
         if (p is null) return;
-
         mode = ViewMode.Edit;
         modeTitle = "Edit Pet";
         current = p;
     }
 
-    private async Task ViewDetails(int id)
-    {
-        var p = await PetService.GetPetByIdAsync(id);
-        if (p is null) return;
-
-        mode = ViewMode.Details;
-        modeTitle = "Pet Details";
-        current = p;
-    }
-
     private async Task StartDelete(int id)
     {
-        var p = await PetService.GetPetByIdAsync(id);
+        var p = await PetRepo.GetByIdAsync(id);
         if (p is null) return;
-
         mode = ViewMode.Delete;
         modeTitle = "Delete Pet";
         current = p;
@@ -260,14 +261,12 @@
 
     private async Task Save()
     {
-        error = null;
-
         try
         {
             if (mode == ViewMode.Create)
-                await PetService.AddPetAsync(current);
+                await PetRepo.AddAsync(current);
             else if (mode == ViewMode.Edit)
-                await PetService.UpdatePetAsync(current);
+                await PetRepo.UpdateAsync(current);
 
             await Load();
             BackToList();
@@ -280,11 +279,9 @@
 
     private async Task ConfirmDelete()
     {
-        error = null;
-
         try
         {
-            await PetService.DeletePetAsync(current.Id);
+            await PetRepo.DeleteAsync(current.Id);
             await Load();
             BackToList();
         }

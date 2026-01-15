@@ -1,8 +1,9 @@
 ﻿@page "/"
 @using Microsoft.AspNetCore.Components.Authorization
 @using PAWPALme.Models
-@using PAWPALme.Services
-@inject PetService PetService
+@using PAWPALme.Repositories
+@using PAWPALme.Enums
+@inject IPetRepository PetRepo
 @inject NavigationManager Nav
 
 <PageTitle>Home</PageTitle>
@@ -167,10 +168,12 @@
     {
         try
         {
-            var allPets = await PetService.GetPetsAsync(null, null, null, null, null);
+            // 1. Fetch All Pets using the Repository
+            var allPets = await PetRepo.GetAllAsync();
 
+            // 2. Filter in memory (using the Enum correctly)
             featuredPets = allPets
-                .Where(p => string.Equals(p.Status, "Available", StringComparison.OrdinalIgnoreCase))
+                .Where(p => p.Status == PetStatus.Available) // ✅ Fixed: Enum comparison
                 .OrderByDescending(p => p.Id)
                 .Take(6)
                 .ToList();

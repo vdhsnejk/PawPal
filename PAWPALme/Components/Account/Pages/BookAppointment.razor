@@ -1,8 +1,9 @@
 ﻿@page "/book-appointment/{PetId:int}"
 @using PAWPALme.Models
-@using PAWPALme.Services
-@inject AppointmentService ApptService
-@inject PetService PetService
+@using PAWPALme.Repositories
+@using PAWPALme.Enums
+@inject IAppointmentRepository ApptRepo
+@inject IPetRepository PetRepo
 @inject NavigationManager Nav
 
 <PageTitle>Book a Visit</PageTitle>
@@ -15,24 +16,34 @@
         <div class="card-body">
             <p class="text-muted">Schedule a time to visit this pet at the shelter.</p>
 
-            <EditForm Model="appointment" OnValidSubmit="SaveAppointment" FormName="BookingForm">
+            <EditForm Model="appointment" OnValidSubmit="SaveAppointment">
                 <DataAnnotationsValidator />
                 <ValidationSummary class="text-danger" />
 
                 <div class="mb-3">
-                    <label class="form-label">Preferred Date & Time</label>
-                    <InputDate Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="appointment.AppointmentDate" />
+                    <label class="form-label">Preferred Date</label>
+                    <InputDate class="form-control" @bind-Value="appointment.AppointmentDate" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Preferred Time</label>
+                    <input type="time" class="form-control" @bind="AppointmentTimeBinder" />
                 </div>
 
                 <div class="row g-2 mb-3">
                     <div class="col-md-6">
                         <label class="form-label">Your Name</label>
-                        <InputText class="form-control" @bind-Value="appointment.AdopterName" />
+                        <InputText class="form-control" @bind-Value="applicationStub.ApplicantName" placeholder="Required" />
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Email</label>
-                        <InputText class="form-control" @bind-Value="appointment.AdopterEmail" />
+                        <InputText class="form-control" @bind-Value="applicationStub.ApplicantEmail" placeholder="Required" />
                     </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Notes</label>
+                    <InputTextArea class="form-control" @bind-Value="appointment.Notes" />
                 </div>
 
                 <div class="d-flex justify-content-between mt-4">
@@ -47,29 +58,44 @@
 @code {
     [Parameter] public int PetId { get; set; }
 
-    [SupplyParameterFromForm]
-    public Appointment appointment { get; set; } = new();
-
+    private Appointment appointment = new();
+    private AdoptionApplication applicationStub = new();
     private string petName = "your new friend";
+
+    // --- FIX: Time Binding Helper ---
+    // The HTML input returns a DateTime, but our model needs a TimeSpan.
+    // This property handles the conversion automatically.
+    private DateTime AppointmentTimeBinder
+    {
+        get => DateTime.Today.Add(appointment.AppointmentTime);
+        set => appointment.AppointmentTime = value.TimeOfDay;
+    }
 
     protected override async Task OnInitializedAsync()
     {
-        // 1. Get Pet Name for display
-        var pet = await PetService.GetPetByIdAsync(PetId);
+        var pet = await PetRepo.GetByIdAsync(PetId);
         if (pet != null)
         {
             petName = pet.Name;
-            appointment.PetId = pet.Id; // Link the appointment to this pet
+            applicationStub.PetId = pet.Id;
+            appointment.AdoptionApplication = applicationStub;
         }
 
-        // 2. Set default date to tomorrow
-        if (appointment.AppointmentDate == default)
-            appointment.AppointmentDate = DateTime.Now.AddDays(1).Date.AddHours(10);
+        // Defaults
+        appointment.AppointmentDate = DateTime.Now.AddDays(1);
+        appointment.AppointmentTime = new TimeSpan(10, 0, 0); // 10:00 AM
     }
 
     private async Task SaveAppointment()
     {
-        await ApptService.AddAppointmentAsync(appointment);
-        Nav.NavigateTo("/appointments"); // Redirect to "My Appointments"
+        // Basic Validation
+        if (string.IsNullOrWhiteSpace(applicationStub.ApplicantName) || string.IsNullOrWhiteSpace(applicationStub.ApplicantEmail))
+        {
+            return;
+        }
+
+        appointment.Status = AppointmentStatus.Pending;
+        await ApptRepo.AddAsync(appointment);
+        Nav.NavigateTo("/pets");
     }
 }

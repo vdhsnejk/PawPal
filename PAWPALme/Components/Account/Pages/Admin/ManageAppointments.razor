@@ -2,8 +2,9 @@
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = "Admin")]
 @using PAWPALme.Models
-@using PAWPALme.Services
-@inject AppointmentService ApptService
+@using PAWPALme.Repositories
+@using PAWPALme.Enums
+@inject IAppointmentRepository ApptRepo
 @rendermode InteractiveServer
 
 <PageTitle>Admin - Appointments</PageTitle>
@@ -15,7 +16,7 @@
     {
         <p>Loading...</p>
     }
-    else if (appointments.Count == 0)
+    else if (!appointments.Any())
     {
         <div class="alert alert-info">No appointment requests yet.</div>
     }
@@ -26,7 +27,7 @@
                 <tr>
                     <th>Date</th>
                     <th>Pet</th>
-                    <th>Adopter</th>
+                    <th>Applicant</th>
                     <th>Email</th>
                     <th>Status</th>
                     <th style="width: 240px;">Actions</th>
@@ -36,31 +37,28 @@
                 @foreach (var appt in appointments)
                 {
                     <tr>
-                        <td>@appt.AppointmentDate.ToString("yyyy-MM-dd HH:mm")</td>
-                        <td>@(appt.Pet?.Name ?? $"Pet #{appt.PetId}")</td>
-                        <td>@appt.AdopterName</td>
-                        <td>@appt.AdopterEmail</td>
+                        <td>@appt.AppointmentDate.ToString("yyyy-MM-dd") @appt.AppointmentTime</td>
+                        <td>@(appt.AdoptionApplication?.Pet?.Name ?? "Unknown")</td>
+
+                        <td>@(appt.AdoptionApplication?.ApplicantName ?? appt.AdoptionApplication?.User?.UserName ?? "Unknown")</td>
+                        <td>@(appt.AdoptionApplication?.ApplicantEmail ?? appt.AdoptionApplication?.User?.Email ?? "-")</td>
+
                         <td>
                             <span class="badge @GetBadgeClass(appt.Status)">@appt.Status</span>
                         </td>
                         <td>
-                            @if (appt.Status == "Pending")
+                            @if (appt.Status == AppointmentStatus.Pending)
                             {
                                 <button class="btn btn-sm btn-success me-1"
-                                        @onclick="@(() => Approve(appt))">
+                                        @onclick="@(() => UpdateStatus(appt, AppointmentStatus.Confirmed))">
                                     Approve
                                 </button>
 
                                 <button class="btn btn-sm btn-danger me-1"
-                                        @onclick="@(() => Reject(appt))">
+                                        @onclick="@(() => UpdateStatus(appt, AppointmentStatus.Cancelled))">
                                     Reject
                                 </button>
                             }
-
-                            <button class="btn btn-sm btn-outline-secondary"
-                                    @onclick="@(() => DeleteAppt(appt.Id))">
-                                Delete
-                            </button>
                         </td>
                     </tr>
                 }
@@ -70,7 +68,7 @@
 </div>
 
 @code {
-    private List<Appointment>? appointments;
+    private IEnumerable<Appointment>? appointments;
 
     protected override async Task OnInitializedAsync()
     {
@@ -79,34 +77,24 @@
 
     private async Task Reload()
     {
-        appointments = await ApptService.GetAppointmentsAsync();
+        // NOTE: As Admin, you might want ALL appointments.
+        // But GetByShelterIdAsync is what we have in the Interface.
+        // For now, pass a known Shelter ID or update the Interface to support GetAllAsync.
+        // Assuming we look at Shelter 1 for demo purposes:
+        appointments = await ApptRepo.GetByShelterIdAsync(1);
     }
 
-    private async Task Approve(Appointment appt)
+    private async Task UpdateStatus(Appointment appt, AppointmentStatus status)
     {
-        appt.Status = "Confirmed";
-        await ApptService.UpdateAppointmentAsync(appt);
+        await ApptRepo.UpdateStatusAsync(appt.Id, status);
         await Reload();
     }
 
-    private async Task Reject(Appointment appt)
+    private string GetBadgeClass(AppointmentStatus status) => status switch
     {
-        appt.Status = "Rejected";
-        await ApptService.UpdateAppointmentAsync(appt);
-        await Reload();
-    }
-
-    private async Task DeleteAppt(int id)
-    {
-        await ApptService.DeleteAppointmentAsync(id);
-        await Reload();
-    }
-
-    private string GetBadgeClass(string status) => status switch
-    {
-        "Confirmed" => "bg-success",
-        "Rejected" => "bg-danger",
-        "Pending" => "bg-warning text-dark",
+        AppointmentStatus.Confirmed => "bg-success",
+        AppointmentStatus.Cancelled => "bg-danger",
+        AppointmentStatus.Pending => "bg-warning text-dark",
         _ => "bg-secondary"
     };
 }

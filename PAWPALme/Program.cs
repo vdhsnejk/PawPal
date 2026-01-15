@@ -29,15 +29,16 @@ builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(connectionString));
-
 builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
+builder.Services.AddScoped<ApplicationDbContext>(p =>
+    p.GetRequiredService<IDbContextFactory<ApplicationDbContext>>().CreateDbContext());
+
+
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-builder.Services.AddQuickGridEntityFrameworkAdapter(); 
+builder.Services.AddQuickGridEntityFrameworkAdapter();
 
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
 {
