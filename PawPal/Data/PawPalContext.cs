@@ -1,20 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using PawPal.Configurations.Entities;
-using PawPal.Domain;
+using PawPal.Data;
 
 namespace PawPal.Data
 {
-    public class PawPalContext : DbContext
+    public class PawPalContext(DbContextOptions<PawPalContext> options) : IdentityDbContext<PawPalUser>(options)
     {
-        public PawPalContext (DbContextOptions<PawPalContext> options)
-            : base(options)
-        {
-        }
-
         public DbSet<PawPal.Domain.Shelter> Shelter { get; set; } = default!;
         public DbSet<PawPal.Domain.Pet> Pet { get; set; } = default!;
         public DbSet<PawPal.Domain.PetImage> PetImage { get; set; } = default!;
@@ -29,6 +21,5 @@ namespace PawPal.Data
             modelBuilder.ApplyConfiguration(new PetSeed());
             modelBuilder.ApplyConfiguration(new PetImageSeed());
         }
-
     }
 }
