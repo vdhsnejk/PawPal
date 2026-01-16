@@ -9,6 +9,7 @@
 @using PAWPALme.Enums
 @attribute [Authorize(Roles = "Shelter")]
 @inject IAppointmentRepository ApptRepo
+@inject IShelterRepository ShelterRepo 
 @inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider AuthStateProvider
 
@@ -29,7 +30,7 @@
             <table class="table align-middle table-hover">
                 <thead class="table-light">
                     <tr>
-                        <th>Date/Time</th>
+                        <th>Requested Date</th>
                         <th>Applicant</th>
                         <th>Pet</th>
                         <th>Status</th>
@@ -56,7 +57,9 @@
                             <td>
                                 @if (appt.Status == AppointmentStatus.Pending)
                                 {
-                                    <button class="btn btn-sm btn-success me-1" @onclick="() => UpdateStatus(appt, AppointmentStatus.Confirmed)">Accept</button>
+                                    @* CHANGED: Open Modal instead of saving immediately *@
+                                    <button class="btn btn-sm btn-success me-1" @onclick="() => OpenConfirmModal(appt)">Approve</button>
+                                    
                                     <button class="btn btn-sm btn-outline-danger" @onclick="() => UpdateStatus(appt, AppointmentStatus.Cancelled)">Deny</button>
                                 }
                             </td>
@@ -68,6 +71,7 @@
     }
 </div>
 
+@* --- DETAILS MODAL (Read Only) --- *@
 @if (selectedAppointment != null)
 {
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
@@ -95,10 +99,55 @@
     </div>
 }
 
+@* --- CONFIRMATION MODAL (Editable Date/Time) --- *@
+@if (confirmingAppointment != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">Confirm Appointment</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseConfirmModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Please finalize the date and time for this visit.</p>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Confirmed Date</label>
+                        <input type="date" class="form-control" @bind="confirmDate" />
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Confirmed Time</label>
+                        <input type="time" class="form-control" @bind="confirmTime" />
+                    </div>
+
+                    <div class="alert alert-light border">
+                        <i class="bi bi-geo-alt-fill text-danger"></i> <strong>Location:</strong><br/>
+                        @currentShelterAddress
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseConfirmModal">Cancel</button>
+                    <button type="button" class="btn btn-success" @onclick="FinalizeApproval">Send Confirmation</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private IEnumerable<Appointment>? appointments;
     private ApplicationUser? currentUser;
-    private Appointment? selectedAppointment;
+    
+    // Modals state
+    private Appointment? selectedAppointment; 
+    private Appointment? confirmingAppointment;
+    
+    // Confirmation Form Data
+    private DateTime confirmDate;
+    private DateTime confirmTime;
+    private string currentShelterAddress = "Loading...";
 
     protected override async Task OnInitializedAsync()
     {
@@ -108,9 +157,49 @@
         if (currentUser?.ShelterId != null)
         {
             appointments = await ApptRepo.GetByShelterIdAsync(currentUser.ShelterId.Value);
+            
+            // Fetch shelter address once for the UI
+            var shelter = await ShelterRepo.GetByIdAsync(currentUser.ShelterId.Value);
+            currentShelterAddress = shelter?.Address ?? "Address not found";
         }
     }
 
+    // 1. Open the Approval Modal
+    private void OpenConfirmModal(Appointment appt)
+    {
+        confirmingAppointment = appt;
+        // Pre-fill with the user's requested time
+        confirmDate = appt.AppointmentDate;
+        confirmTime = DateTime.Today.Add(appt.AppointmentTime); 
+    }
+
+    private void CloseConfirmModal()
+    {
+        confirmingAppointment = null;
+    }
+
+    // 2. Actually Save the Approval
+    private async Task FinalizeApproval()
+    {
+        if (confirmingAppointment != null)
+        {
+            // Update values from the modal inputs
+            confirmingAppointment.AppointmentDate = confirmDate;
+            confirmingAppointment.AppointmentTime = confirmTime.TimeOfDay;
+            confirmingAppointment.Status = AppointmentStatus.Confirmed;
+
+            await ApptRepo.UpdateAsync(confirmingAppointment);
+            
+            // Refresh list
+            if (currentUser?.ShelterId != null)
+            {
+                appointments = await ApptRepo.GetByShelterIdAsync(currentUser.ShelterId.Value);
+            }
+            confirmingAppointment = null;
+        }
+    }
+
+    // Standard Update (for Deny)
     private async Task UpdateStatus(Appointment appt, AppointmentStatus status)
     {
         appt.Status = status;
