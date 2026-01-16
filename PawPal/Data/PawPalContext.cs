@@ -20,6 +20,10 @@ namespace PawPal.Data
             modelBuilder.ApplyConfiguration(new ShelterSeed());
             modelBuilder.ApplyConfiguration(new PetSeed());
             modelBuilder.ApplyConfiguration(new PetImageSeed());
+            modelBuilder.ApplyConfiguration(new RoleSeed());
+            modelBuilder.ApplyConfiguration(new UserSeed());
+            modelBuilder.ApplyConfiguration(new UserRoleSeed());
+
         }
     }
 }
