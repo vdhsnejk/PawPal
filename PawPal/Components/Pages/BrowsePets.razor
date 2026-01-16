@@ -1,0 +1,172 @@
+﻿@page "/pets"
+@layout PublicLayout
+
+<PageTitle>Browse Pets</PageTitle>
+
+<div class="container py-4">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3 mb-4">
+        <div>
+            <h1 class="mb-1">Browse Pets</h1>
+            <p class="text-muted mb-0">Find your next companion from verified shelters.</p>
+        </div>
+
+        <div class="text-muted small">
+            Showing <span class="fw-semibold">@FilteredCount</span> pets
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Species</label>
+                    <select class="form-select" @bind="SelectedSpecies">
+                        <option value="">All</option>
+                        <option>Dog</option>
+                        <option>Cat</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Size</label>
+                    <select class="form-select" @bind="SelectedSize">
+                        <option value="">All</option>
+                        <option>Small</option>
+                        <option>Medium</option>
+                        <option>Large</option>
+                    </select>
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <label class="form-label">Search</label>
+                    <input class="form-control" placeholder="Name, breed, temperament..."
+                           @bind="SearchTerm" @bind:event="oninput" />
+                </div>
+
+                <div class="col-12 col-md-2 d-grid">
+                    <button class="btn btn-outline-secondary" @onclick="ClearFilters">
+                        Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grid -->
+    <div class="row g-4">
+        @foreach (var pet in FilteredPets)
+        {
+            <div class="col-12 col-sm-6 col-lg-4">
+                <div class="card h-100 shadow-sm border-0 pet-card">
+                    <img src="@pet.ImageUrl"
+                         class="card-img-top"
+                         style="height: 210px; object-fit: cover;"
+                         alt="Pet photo" />
+
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h5 class="card-title mb-1">@pet.Name</h5>
+                                <div class="text-muted small">@pet.Breed • @pet.Age years</div>
+                            </div>
+
+                            <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                @pet.Status
+                            </span>
+                        </div>
+
+                        <div class="mt-3 d-flex flex-wrap gap-2">
+                            <span class="badge text-bg-light border">@pet.Species</span>
+                            <span class="badge text-bg-light border">@pet.Size</span>
+                            <span class="badge text-bg-light border">@pet.Temperament</span>
+                        </div>
+
+                        <p class="text-muted small mt-3 mb-0">
+                            @pet.ShortDescription
+                        </p>
+                    </div>
+
+                    <div class="card-footer bg-white border-0 pt-0 pb-3 px-3">
+                        <a class="btn btn-success w-100" href="@($"/pets/{pet.Id}")">
+                            View Details
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (!FilteredPets.Any())
+    {
+        <div class="text-center text-muted py-5">
+            <i class="bi bi-search fs-1"></i>
+            <div class="mt-2">No pets match your filters.</div>
+        </div>
+    }
+</div>
+
+@code {
+    // UI filter state
+    private string SelectedSpecies = "";
+    private string SelectedSize = "";
+    private string SearchTerm = "";
+
+    // Temporary sample data (we will replace with EF Core next)
+    private List<PetCardVm> AllPets = new()
+    {
+        new PetCardVm(1, "Milo", "Dog", "Mixed", 2, "Medium", "Friendly", "Available",
+            "Playful and loves walks.", "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=1200&q=80"),
+        new PetCardVm(2, "Luna", "Cat", "Domestic Shorthair", 3, "Small", "Calm", "Available",
+            "Quiet and affectionate companion.", "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?auto=format&fit=crop&w=1200&q=80"),
+        new PetCardVm(3, "Kaya", "Dog", "Shiba Inu", 1, "Small", "Active", "Available",
+            "Energetic and curious.", "https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=1200&q=80"),
+    };
+
+    private IEnumerable<PetCardVm> FilteredPets => ApplyFilters(AllPets);
+    private int FilteredCount => FilteredPets.Count();
+
+    private IEnumerable<PetCardVm> ApplyFilters(IEnumerable<PetCardVm> pets)
+    {
+        var q = pets;
+
+        if (!string.IsNullOrWhiteSpace(SelectedSpecies))
+            q = q.Where(p => p.Species.Equals(SelectedSpecies, StringComparison.OrdinalIgnoreCase));
+
+        if (!string.IsNullOrWhiteSpace(SelectedSize))
+            q = q.Where(p => p.Size.Equals(SelectedSize, StringComparison.OrdinalIgnoreCase));
+
+        if (!string.IsNullOrWhiteSpace(SearchTerm))
+        {
+            var s = SearchTerm.Trim();
+            q = q.Where(p =>
+                (p.Name?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (p.Breed?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (p.Temperament?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false));
+        }
+
+        return q;
+    }
+
+    private void ClearFilters()
+    {
+        SelectedSpecies = "";
+        SelectedSize = "";
+        SearchTerm = "";
+    }
+
+    private record PetCardVm(
+        int Id,
+        string Name,
+        string Species,
+        string Breed,
+        int Age,
+        string Size,
+        string Temperament,
+        string Status,
+        string ShortDescription,
+        string ImageUrl
+    );
+}
