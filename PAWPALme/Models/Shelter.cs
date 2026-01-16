@@ -4,25 +4,25 @@ namespace PAWPALme.Models
 {
     public class Shelter
     {
-        [Key]
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "Shelter Name is required")]
-        [StringLength(100)]
-        public string Name { get; set; } = string.Empty;
+        [Required]
+        public string Name { get; set; } = "";
 
-        [Required(ErrorMessage = "Address is required")]
-        [StringLength(200)]
-        public string Address { get; set; } = string.Empty;
+        [Required]
+        public string Address { get; set; } = "";
 
-        [Phone]
-        [StringLength(20)]
-        public string? Phone { get; set; }
+        [Required]
+        public string Phone { get; set; } = "";
 
-        [StringLength(500)]
+        // NEW: For the "Details" you requested
+        [StringLength(1000)]
         public string? Description { get; set; }
 
-        // Links this Shelter profile to a Login Account (Admin)
+        // NEW: For a profile picture/logo
+        public string? ImageUrl { get; set; }
+
+        // Link to the Identity User (Login)
         public string? OwnerUserId { get; set; }
     }
 }

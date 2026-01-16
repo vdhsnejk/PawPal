@@ -1,40 +1,92 @@
 ﻿@page "/shelters"
-@rendermode InteractiveServer
 @using PAWPALme.Models
 @using PAWPALme.Repositories
 @inject IShelterRepository ShelterRepo
 
-<PageTitle>Our Shelters</PageTitle>
+<PageTitle>Partner Shelters</PageTitle>
+
+@* --- CSS FOR HOVER EFFECTS --- *@
+<style>
+    .hover-card {
+        transition: transform 0.2s ease-in-out;
+    }
+
+        .hover-card:hover {
+            transform: translateY(-5px);
+        }
+
+    /* The Address Link Style */
+    .address-link {
+        color: #6c757d; /* Muted Grey (Default) */
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+
+        .address-link:hover {
+            color: #0d6efd; /* Bootstrap Primary Blue */
+            text-decoration: underline; /* Clear visual cue */
+            cursor: pointer;
+        }
+</style>
 
 <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Our Partner Shelters</h2>
-        <a href="shelter/register" class="btn btn-outline-success">
-            <i class="bi bi-plus-lg"></i> Register New Shelter
-        </a>
+    <div class="text-center mb-5">
+        <h1 class="display-5 fw-bold text-primary">Our Shelter Partners</h1>
+        <p class="lead text-muted">Dedicated organizations helping pets find homes.</p>
     </div>
 
     @if (shelters == null)
     {
-        <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
+        <div class="d-flex justify-content-center">
+            <div class="spinner-border text-primary" role="status"></div>
         </div>
     }
     else if (!shelters.Any())
     {
-        <div class="alert alert-info">No shelters registered yet. Be the first!</div>
+        <div class="alert alert-info text-center">No shelters are currently registered.</div>
     }
     else
     {
         <div class="row g-4">
             @foreach (var s in shelters)
             {
-                <div class="col-md-4">
-                    <div class="card h-100 shadow-sm">
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 shadow-sm border-0 hover-card">
+                        @* Placeholder or Real Image *@
+                        <div class="bg-light d-flex align-items-center justify-content-center" style="height: 200px; overflow:hidden;">
+                            @if (!string.IsNullOrEmpty(s.ImageUrl))
+                            {
+                                <img src="@s.ImageUrl" class="w-100 h-100" style="object-fit: cover;" />
+                            }
+                            else
+                            {
+                                <i class="bi bi-house-heart fs-1 text-muted"></i>
+                            }
+                        </div>
+
                         <div class="card-body">
-                            <h5 class="card-title">@s.Name</h5>
-                            <p class="card-text text-muted">@s.Address</p>
-                            <p class="card-text"><i class="bi bi-telephone"></i> @s.Phone</p>
+                            <h5 class="card-title fw-bold text-primary">@s.Name</h5>
+
+                            <p class="card-text small mb-2">
+                                <i class="bi bi-geo-alt-fill text-danger me-1"></i>
+                                @* UPDATED: Using the new class *@
+                                <a href="@($"https://www.google.com/maps/search/?api=1&query={Uri.EscapeDataString(s.Address)}")"
+                                   target="_blank"
+                                   class="address-link"
+                                   title="View on Google Maps">
+                                    @s.Address
+                                </a>
+                            </p>
+
+                            <p class="card-text"><small><i class="bi bi-telephone me-1"></i> @s.Phone</small></p>
+
+                            @if (!string.IsNullOrEmpty(s.Description))
+                            {
+                                <p class="card-text text-truncate text-muted">@s.Description</p>
+                            }
+                        </div>
+                        <div class="card-footer bg-white border-top-0 pb-3">
+                            <a href="shelter/@s.Id" class="btn btn-outline-primary w-100">View Details & Pets</a>
                         </div>
                     </div>
                 </div>
