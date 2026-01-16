@@ -1,77 +1,102 @@
-﻿@page "/pets/{PetId:int}"
-@layout PublicLayout
+﻿@page "/pets/{Id:int}"
+@using PawPal.Domain
+@inject PawPal.Data.PawPalContext Db
 @inject NavigationManager Nav
 
 <PageTitle>Pet Details</PageTitle>
 
 <div class="container py-4">
-    <button class="btn btn-link px-0 mb-3 text-decoration-none" @onclick="GoBack">
-        <i class="bi bi-arrow-left me-2"></i> Back to Browse
-    </button>
 
-    @if (Pet is null)
+    <!-- Breadcrumb / back -->
+    <div class="mb-3">
+        <button class="btn btn-link px-0 text-decoration-none" @onclick="Back">
+            <i class="bi bi-arrow-left me-2"></i>Back to Browse
+        </button>
+    </div>
+
+    @if (Pet == null)
     {
-        <div class="alert alert-warning">
-            Pet not found.
-        </div>
+        <div class="alert alert-warning">Pet not found.</div>
     }
     else
     {
         <div class="row g-4">
+            <!-- Left: main image -->
             <div class="col-12 col-lg-6">
-                <div class="card border-0 shadow-sm overflow-hidden">
-                    <img src="@Pet.ImageUrl" style="width:100%; height:420px; object-fit:cover;" alt="Pet photo" />
-                </div>
+                <img class="details-img shadow-sm"
+                     src="@ImageUrl"
+                     alt="Pet photo" />
             </div>
 
+            <!-- Right: details -->
             <div class="col-12 col-lg-6">
-                <div class="d-flex justify-content-between align-items-start">
+                <div class="d-flex justify-content-between align-items-start gap-3">
                     <div>
-                        <h1 class="mb-1">@Pet.Name</h1>
-                        <div class="text-muted">@Pet.Breed • @Pet.Age years • @Pet.Gender</div>
+                        <h1 class="fw-bold mb-1">@Pet.Name</h1>
+                        <div class="text-muted">
+                            @Pet.Species
+                            @if (!string.IsNullOrWhiteSpace(Pet.Breed))
+                            {
+                                <span>• @Pet.Breed</span>
+                            }
+                            <span>• Age @Pet.Age</span>
+                        </div>
                     </div>
 
-                    <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2">
+                    <span class="badge bg-success-subtle text-success border border-success-subtle status-badge">
                         @Pet.Status
                     </span>
                 </div>
 
+                <!-- Tags -->
                 <div class="mt-3 d-flex flex-wrap gap-2">
-                    <span class="badge text-bg-light border">@Pet.Species</span>
-                    <span class="badge text-bg-light border">@Pet.Size</span>
-                    <span class="badge text-bg-light border">@Pet.Temperament</span>
+                    <span class="tag-badge"><i class="bi bi-arrows-angle-expand me-1"></i>@Pet.Size</span>
+                    <span class="tag-badge"><i class="bi bi-gender-ambiguous me-1"></i>@Pet.Gender</span>
+                    @if (!string.IsNullOrWhiteSpace(Pet.Temperament))
+                    {
+                        <span class="tag-badge"><i class="bi bi-emoji-smile me-1"></i>@Pet.Temperament</span>
+                    }
                 </div>
 
-                <hr class="my-4" />
-
-                <h5>About @Pet.Name</h5>
-                <p class="text-muted">@Pet.Description</p>
-
-                <div class="card border-0 bg-light mt-4">
-                    <div class="card-body">
-                        <div class="row g-3">
-                            <div class="col-6">
-                                <div class="text-muted small">Medical Info</div>
-                                <div class="fw-semibold">@Pet.MedicalInfo</div>
-                            </div>
-                            <div class="col-6">
-                                <div class="text-muted small">Shelter</div>
-                                <div class="fw-semibold">@Pet.ShelterName</div>
-                            </div>
-                            <div class="col-12">
-                                <div class="text-muted small">Location</div>
-                                <div class="fw-semibold">@Pet.ShelterAddress</div>
-                            </div>
-                        </div>
+                <!-- About -->
+                <div class="section-card bg-white shadow-sm p-4 mt-4">
+                    <div class="fw-semibold mb-2"><i class="bi bi-info-circle me-2"></i>About</div>
+                    <div class="text-muted">
+                        @(!string.IsNullOrWhiteSpace(Pet.Description) ? Pet.Description : "No description provided yet.")
                     </div>
                 </div>
 
-                <div class="mt-4 d-grid gap-2">
-                    <a class="btn btn-success btn-lg" href="@($"/apply/{Pet.Id}")">
-                        Apply to Adopt
-                    </a>
-                    <div class="text-muted small text-center">
-                        You’ll need an account to submit an application.
+                <!-- Medical -->
+                <div class="section-card bg-light p-4 mt-3">
+                    <div class="fw-semibold mb-2"><i class="bi bi-shield-check me-2"></i>Medical Info</div>
+                    <div class="text-muted">
+                        @(!string.IsNullOrWhiteSpace(Pet.MedicalInfo) ? Pet.MedicalInfo : "Not specified.")
+                    </div>
+                </div>
+
+                <!-- CTA -->
+                <div class="section-card bg-white shadow-sm p-4 mt-3">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="mini-label">Shelter</div>
+                            <div class="fw-semibold">Assigned shelter</div>
+                            <div class="text-muted small">We’ll show shelter details after we wire Shelter join.</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="mini-label">Status</div>
+                            <div class="fw-semibold">@Pet.Status</div>
+                            <div class="text-muted small">Available pets can be applied for.</div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid mt-4">
+                        <a class="btn btn-success btn-lg" href="@($"/apply/{Pet.Id}")">
+                            Apply to Adopt <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+
+                    <div class="text-muted small text-center mt-2">
+                        You only need an account to submit an application.
                     </div>
                 </div>
             </div>
@@ -80,56 +105,30 @@
 </div>
 
 @code {
-    [Parameter] public int PetId { get; set; }
+    // Route parameter from /pets/{Id}
+    [Parameter] public int Id { get; set; }
 
-    private PetDetailsVm? Pet;
+    // Pet loaded from DB
+    private Pet? Pet;
 
-    private readonly List<PetDetailsVm> _pets = new()
-    {
-        new PetDetailsVm(1,"Milo","Dog","Mixed",2,"Medium","Male","Friendly","Available",
-            "Milo is playful, loves walks, and enjoys cuddles after playtime.",
-            "Vaccinated, dewormed",
-            "Happy Tails Shelter",
-            "123 Tampines Ave 1",
-            "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=1400&q=80"),
-        new PetDetailsVm(2,"Luna","Cat","Domestic Shorthair",3,"Small","Female","Calm","Available",
-            "Luna is quiet and affectionate. Perfect for a calm home environment.",
-            "Sterilised, vaccinated",
-            "Paws & Care Shelter",
-            "55 Bedok North Rd",
-            "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?auto=format&fit=crop&w=1400&q=80"),
-        new PetDetailsVm(3,"Kaya","Dog","Shiba Inu",1,"Small","Female","Active","Available",
-            "Kaya is energetic and curious. She’ll thrive with an active adopter.",
-            "Vaccinated",
-            "Westside Rescue",
-            "8 Jurong West St 12",
-            "https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=1400&q=80"),
-    };
+    // Pet image (fallback if none)
+    private string ImageUrl = "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=1400&q=80";
 
     protected override void OnParametersSet()
     {
-        Pet = _pets.FirstOrDefault(p => p.Id == PetId);
+        // Load pet by primary key (Id comes from BaseDomainModel)
+        Pet = Db.Pet.FirstOrDefault(p => p.Id == Id);
+
+        // Load first image for this pet (if exists)
+        var img = Db.PetImage
+            .Where(i => i.PetId == Id)
+            .OrderBy(i => i.Id)
+            .Select(i => i.ImageUrl)
+            .FirstOrDefault();
+
+        if (!string.IsNullOrWhiteSpace(img))
+            ImageUrl = img;
     }
 
-    private void GoBack()
-    {
-        Nav.NavigateTo("/pets");
-    }
-
-    private record PetDetailsVm(
-        int Id,
-        string Name,
-        string Species,
-        string Breed,
-        int Age,
-        string Size,
-        string Gender,
-        string Temperament,
-        string Status,
-        string Description,
-        string MedicalInfo,
-        string ShelterName,
-        string ShelterAddress,
-        string ImageUrl
-    );
+    private void Back() => Nav.NavigateTo("/pets");
 }
