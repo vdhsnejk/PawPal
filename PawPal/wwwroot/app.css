@@ -49,3 +49,118 @@ h1:focus {
 .darker-border-checkbox.form-check-input {
     border-color: #929292;
 }
+
+/* ===== Auth pages (match your screenshot) ===== */
+.auth-page {
+    min-height: calc(85vh - 0px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 16px;
+    background: #f6f8fc;
+}
+
+.auth-card {
+    width: 420px;
+    max-width: 92vw;
+    background: #fff;
+    border: 1px solid #e9eef5;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(16, 24, 40, 0.06);
+    padding: 28px 28px 22px;
+}
+
+.auth-title {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    text-align: center;
+    color: #101828;
+}
+
+.auth-subtitle {
+    margin-top: 6px;
+    margin-bottom: 18px;
+    font-size: 13px;
+    text-align: center;
+    color: #667085;
+}
+
+.auth-card .form-label {
+    display: none; /* screenshot has placeholder-only look */
+}
+
+.auth-card .form-control {
+    height: 60px;
+    border-radius: 8px;
+    border: 1px solid #e6eaf0;
+    background: #fff;
+    padding: 10px 12px;
+    font-size: 14px;
+}
+
+    .auth-card .form-control:focus {
+        border-color: #7aa7ff;
+        box-shadow: 0 0 0 4px rgba(122, 167, 255, 0.18);
+    }
+
+.auth-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 10px 0 14px;
+}
+
+    .auth-row .form-check-input {
+        width: 14px;
+        height: 14px;
+        margin-top: 0;
+    }
+
+    .auth-row .small {
+        font-size: 12px;
+        color: #667085;
+    }
+
+.auth-link {
+    font-size: 12px;
+    color: #2b6df6;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+    .auth-link:hover {
+        text-decoration: underline;
+    }
+
+.btn-auth {
+    height: 44px;
+    border-radius: 8px;
+    border: none;
+    background: #2b6df6;
+    color: #fff;
+    font-weight: 600;
+    width: 100%;
+}
+
+    .btn-auth:hover {
+        background: #255fe0;
+    }
+
+.auth-footer {
+    margin-top: 14px;
+    text-align: center;
+    font-size: 12px;
+    color: #667085;
+}
+
+    .auth-footer a {
+        color: #2b6df6;
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+        .auth-footer a:hover {
+            text-decoration: underline;
+        }
+

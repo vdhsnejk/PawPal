@@ -1,4 +1,4 @@
-﻿@* 
+﻿
 @page "/apply/{PetId:int}"
 @rendermode InteractiveServer
 @layout PawPal.Components.Layout.PublicLayout
@@ -191,10 +191,12 @@
             var appUser = await UserManager.GetUserAsync(user);
             if (appUser == null) { Error = "Unable to load user."; return; }
 
+            var adopterId = appUser.Id;
+
             var application = new AdoptionApplication
             {
                 PetId = PetId,
-                AdopterId = ,
+                AdopterId = adopterId,
                 ApplicationDate = DateTime.Now,
                 Status = "Pending",
                 Remarks = $"{Form.FullName} | {Form.PhoneNumber} | {Form.Address} | Reason: {Form.Reason} | Exp: {Form.Experience}"
@@ -223,4 +225,4 @@
         public string Reason { get; set; } = "";
         public string Experience { get; set; } = "";
     }
-} *@
+} 

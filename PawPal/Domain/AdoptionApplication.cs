@@ -2,7 +2,7 @@
 
 public class AdoptionApplication : BaseDomainModel
 {
-    public int AdopterId { get; set; }
+    public string AdopterId { get; set; } =string.Empty;
     public int PetId { get; set; }
     public DateTime ApplicationDate { get; set; } = DateTime.Now;
     public string Status { get; set; } = "Pending";
