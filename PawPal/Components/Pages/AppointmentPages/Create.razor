@@ -1,0 +1,94 @@
+﻿@page "/appointments/create"
+@using Microsoft.EntityFrameworkCore
+@using PawPal.Domain
+@inject IDbContextFactory<PawPal.Data.PawPalContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Create</PageTitle>
+
+<h1>Create</h1>
+
+<h2>Appointment</h2>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <EditForm method="post" Model="Appointment" OnValidSubmit="AddAppointment" FormName="create" Enhance>
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" role="alert"/>
+            <div class="mb-3">
+                <label for="applicationid" class="form-label">ApplicationId:</label> 
+                <InputNumber id="applicationid" @bind-Value="Appointment.ApplicationId" class="form-control" /> 
+                <ValidationMessage For="() => Appointment.ApplicationId" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="appointmentdate" class="form-label">AppointmentDate:</label> 
+                <InputDate id="appointmentdate" @bind-Value="Appointment.AppointmentDate" class="form-control" /> 
+                <ValidationMessage For="() => Appointment.AppointmentDate" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="appointmenttime" class="form-label">AppointmentTime:</label> 
+                <InputDate id="appointmenttime" @bind-Value="Appointment.AppointmentTime" class="form-control" /> 
+                <ValidationMessage For="() => Appointment.AppointmentTime" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="location" class="form-label">Location:</label> 
+                <InputText id="location" @bind-Value="Appointment.Location" class="form-control" /> 
+                <ValidationMessage For="() => Appointment.Location" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="status" class="form-label">Status:</label> 
+                <InputText id="status" @bind-Value="Appointment.Status" class="form-control" /> 
+                <ValidationMessage For="() => Appointment.Status" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="notes" class="form-label">Notes:</label> 
+                <InputText id="notes" @bind-Value="Appointment.Notes" class="form-control" /> 
+                <ValidationMessage For="() => Appointment.Notes" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="scheduledbyadminid" class="form-label">ScheduledByAdminId:</label> 
+                <InputNumber id="scheduledbyadminid" @bind-Value="Appointment.ScheduledByAdminId" class="form-control" /> 
+                <ValidationMessage For="() => Appointment.ScheduledByAdminId" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="datecreated" class="form-label">DateCreated:</label> 
+                <InputDate id="datecreated" @bind-Value="Appointment.DateCreated" class="form-control" /> 
+                <ValidationMessage For="() => Appointment.DateCreated" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="dateupdated" class="form-label">DateUpdated:</label> 
+                <InputDate id="dateupdated" @bind-Value="Appointment.DateUpdated" class="form-control" /> 
+                <ValidationMessage For="() => Appointment.DateUpdated" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="createdby" class="form-label">CreatedBy:</label> 
+                <InputText id="createdby" @bind-Value="Appointment.CreatedBy" class="form-control" /> 
+                <ValidationMessage For="() => Appointment.CreatedBy" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="updatedby" class="form-label">UpdatedBy:</label> 
+                <InputText id="updatedby" @bind-Value="Appointment.UpdatedBy" class="form-control" /> 
+                <ValidationMessage For="() => Appointment.UpdatedBy" class="text-danger" /> 
+            </div>        
+            <button type="submit" class="btn btn-primary">Create</button>
+        </EditForm>
+    </div>
+</div>
+
+<div>
+    <a href="/appointments">Back to List</a>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    private Appointment Appointment { get; set; } = new();
+
+    // To protect from overposting attacks, see https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.
+    private async Task AddAppointment()
+    {
+        using var context = DbFactory.CreateDbContext();
+        context.Appointment.Add(Appointment);
+        await context.SaveChangesAsync();
+        NavigationManager.NavigateTo("/appointments");
+    }
+}

@@ -1,0 +1,42 @@
+﻿@page "/petimages"
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using PawPal.Domain
+@using PawPal.Data
+@implements IAsyncDisposable
+@inject IDbContextFactory<PawPal.Data.PawPalContext> DbFactory
+
+<PageTitle>Index</PageTitle>
+
+<h1>Index</h1>
+
+<p>
+    <a href="petimages/create">Create New</a>
+</p>
+
+<QuickGrid Class="table" Items="context.PetImage">
+    <PropertyColumn Property="petimage => petimage.PetId" />
+    <PropertyColumn Property="petimage => petimage.ImageUrl" />
+    <PropertyColumn Property="petimage => petimage.IsPrimary" />
+    <PropertyColumn Property="petimage => petimage.DateCreated" />
+    <PropertyColumn Property="petimage => petimage.DateUpdated" />
+    <PropertyColumn Property="petimage => petimage.CreatedBy" />
+    <PropertyColumn Property="petimage => petimage.UpdatedBy" />
+
+    <TemplateColumn Context="petimage">
+        <a href="@($"petimages/edit?id={petimage.Id}")">Edit</a> |
+        <a href="@($"petimages/details?id={petimage.Id}")">Details</a> |
+        <a href="@($"petimages/delete?id={petimage.Id}")">Delete</a>
+    </TemplateColumn>
+</QuickGrid>
+
+@code {
+    private PawPalContext context = default!;
+
+    protected override void OnInitialized()
+    {
+        context = DbFactory.CreateDbContext();
+    }
+
+    public async ValueTask DisposeAsync() => await context.DisposeAsync();
+}

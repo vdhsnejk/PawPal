@@ -1,0 +1,124 @@
+﻿@page "/shelters/edit"
+@using Microsoft.EntityFrameworkCore
+@using PawPal.Domain
+@inject IDbContextFactory<PawPal.Data.PawPalContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Edit</PageTitle>
+
+<h1>Edit</h1>
+
+<h2>Shelter</h2>
+<hr />
+@if (Shelter is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-4">
+            <EditForm method="post" Model="Shelter" OnValidSubmit="UpdateShelter" FormName="edit" Enhance>
+                <DataAnnotationsValidator />
+                <ValidationSummary role="alert"/>
+                <input type="hidden" name="Shelter.Id" value="@Shelter.Id" />
+                <div class="mb-3">
+                    <label for="sheltername" class="form-label">ShelterName:</label>
+                    <InputText id="sheltername" @bind-Value="Shelter.ShelterName" class="form-control" />
+                    <ValidationMessage For="() => Shelter.ShelterName" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="address" class="form-label">Address:</label>
+                    <InputText id="address" @bind-Value="Shelter.Address" class="form-control" />
+                    <ValidationMessage For="() => Shelter.Address" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="phonenumber" class="form-label">PhoneNumber:</label>
+                    <InputText id="phonenumber" @bind-Value="Shelter.PhoneNumber" class="form-control" />
+                    <ValidationMessage For="() => Shelter.PhoneNumber" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email:</label>
+                    <InputText id="email" @bind-Value="Shelter.Email" class="form-control" />
+                    <ValidationMessage For="() => Shelter.Email" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="datecreated" class="form-label">DateCreated:</label>
+                    <InputDate id="datecreated" @bind-Value="Shelter.DateCreated" class="form-control" />
+                    <ValidationMessage For="() => Shelter.DateCreated" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="dateupdated" class="form-label">DateUpdated:</label>
+                    <InputDate id="dateupdated" @bind-Value="Shelter.DateUpdated" class="form-control" />
+                    <ValidationMessage For="() => Shelter.DateUpdated" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="createdby" class="form-label">CreatedBy:</label>
+                    <InputText id="createdby" @bind-Value="Shelter.CreatedBy" class="form-control" />
+                    <ValidationMessage For="() => Shelter.CreatedBy" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="updatedby" class="form-label">UpdatedBy:</label>
+                    <InputText id="updatedby" @bind-Value="Shelter.UpdatedBy" class="form-control" />
+                    <ValidationMessage For="() => Shelter.UpdatedBy" class="text-danger" />
+                </div>
+                <button type="submit" class="btn btn-primary">Save</button>
+            </EditForm>
+        </div>
+    </div>
+}
+
+<div>
+    <a href="/shelters">Back to List</a>
+</div>
+
+@code {
+    [SupplyParameterFromQuery]
+    private int Id { get; set; }
+
+    [SupplyParameterFromForm]
+    private Shelter? Shelter { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        Shelter ??= await context.Shelter.FirstOrDefaultAsync(m => m.Id == Id);
+
+        if (Shelter is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+    }
+
+    // To protect from overposting attacks, enable the specific properties you want to bind to.
+    // For more information, see https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.
+    private async Task UpdateShelter()
+    {
+        using var context = DbFactory.CreateDbContext();
+        context.Attach(Shelter!).State = EntityState.Modified;
+
+        try
+        {
+            await context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            if (!ShelterExists(Shelter!.Id))
+            {
+                NavigationManager.NavigateTo("notfound");
+            }
+            else
+            {
+                throw;
+            }
+        }
+
+        NavigationManager.NavigateTo("/shelters");
+    }
+
+    private bool ShelterExists(int id)
+    {
+        using var context = DbFactory.CreateDbContext();
+        return context.Shelter.Any(e => e.Id == id);
+    }
+}

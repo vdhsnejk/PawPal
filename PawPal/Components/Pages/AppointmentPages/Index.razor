@@ -1,0 +1,46 @@
+﻿@page "/appointments"
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using PawPal.Domain
+@using PawPal.Data
+@implements IAsyncDisposable
+@inject IDbContextFactory<PawPal.Data.PawPalContext> DbFactory
+
+<PageTitle>Index</PageTitle>
+
+<h1>Index</h1>
+
+<p>
+    <a href="appointments/create">Create New</a>
+</p>
+
+<QuickGrid Class="table" Items="context.Appointment">
+    <PropertyColumn Property="appointment => appointment.ApplicationId" />
+    <PropertyColumn Property="appointment => appointment.AppointmentDate" />
+    <PropertyColumn Property="appointment => appointment.AppointmentTime" />
+    <PropertyColumn Property="appointment => appointment.Location" />
+    <PropertyColumn Property="appointment => appointment.Status" />
+    <PropertyColumn Property="appointment => appointment.Notes" />
+    <PropertyColumn Property="appointment => appointment.ScheduledByAdminId" />
+    <PropertyColumn Property="appointment => appointment.DateCreated" />
+    <PropertyColumn Property="appointment => appointment.DateUpdated" />
+    <PropertyColumn Property="appointment => appointment.CreatedBy" />
+    <PropertyColumn Property="appointment => appointment.UpdatedBy" />
+
+    <TemplateColumn Context="appointment">
+        <a href="@($"appointments/edit?id={appointment.Id}")">Edit</a> |
+        <a href="@($"appointments/details?id={appointment.Id}")">Details</a> |
+        <a href="@($"appointments/delete?id={appointment.Id}")">Delete</a>
+    </TemplateColumn>
+</QuickGrid>
+
+@code {
+    private PawPalContext context = default!;
+
+    protected override void OnInitialized()
+    {
+        context = DbFactory.CreateDbContext();
+    }
+
+    public async ValueTask DisposeAsync() => await context.DisposeAsync();
+}

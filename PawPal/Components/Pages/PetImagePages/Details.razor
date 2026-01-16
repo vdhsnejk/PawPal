@@ -1,0 +1,58 @@
+﻿@page "/petimages/details"
+@using Microsoft.EntityFrameworkCore
+@using PawPal.Domain
+@inject IDbContextFactory<PawPal.Data.PawPalContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Details</PageTitle>
+
+<h1>Details</h1>
+
+<div>
+    <h2>PetImage</h2>
+    <hr />
+    @if (petimage is null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else {
+        <dl class="row">
+            <dt class="col-sm-2">PetId</dt>
+            <dd class="col-sm-10">@petimage.PetId</dd>
+            <dt class="col-sm-2">ImageUrl</dt>
+            <dd class="col-sm-10">@petimage.ImageUrl</dd>
+            <dt class="col-sm-2">IsPrimary</dt>
+            <dd class="col-sm-10">@petimage.IsPrimary</dd>
+            <dt class="col-sm-2">DateCreated</dt>
+            <dd class="col-sm-10">@petimage.DateCreated</dd>
+            <dt class="col-sm-2">DateUpdated</dt>
+            <dd class="col-sm-10">@petimage.DateUpdated</dd>
+            <dt class="col-sm-2">CreatedBy</dt>
+            <dd class="col-sm-10">@petimage.CreatedBy</dd>
+            <dt class="col-sm-2">UpdatedBy</dt>
+            <dd class="col-sm-10">@petimage.UpdatedBy</dd>
+        </dl>
+        <div>
+            <a href="@($"/petimages/edit?id={petimage.Id}")">Edit</a> |
+            <a href="@($"/petimages")">Back to List</a>
+        </div>
+    }
+</div>
+
+@code {
+    private PetImage? petimage;
+
+    [SupplyParameterFromQuery]
+    private int Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        petimage = await context.PetImage.FirstOrDefaultAsync(m => m.Id == Id);
+
+        if (petimage is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+    }
+}

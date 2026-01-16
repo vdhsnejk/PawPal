@@ -1,0 +1,159 @@
+﻿@page "/pets/edit"
+@using Microsoft.EntityFrameworkCore
+@using PawPal.Domain
+@inject IDbContextFactory<PawPal.Data.PawPalContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Edit</PageTitle>
+
+<h1>Edit</h1>
+
+<h2>Pet</h2>
+<hr />
+@if (Pet is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-4">
+            <EditForm method="post" Model="Pet" OnValidSubmit="UpdatePet" FormName="edit" Enhance>
+                <DataAnnotationsValidator />
+                <ValidationSummary role="alert"/>
+                <input type="hidden" name="Pet.Id" value="@Pet.Id" />
+                <div class="mb-3">
+                    <label for="shelterid" class="form-label">ShelterId:</label>
+                    <InputNumber id="shelterid" @bind-Value="Pet.ShelterId" class="form-control" />
+                    <ValidationMessage For="() => Pet.ShelterId" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="name" class="form-label">Name:</label>
+                    <InputText id="name" @bind-Value="Pet.Name" class="form-control" />
+                    <ValidationMessage For="() => Pet.Name" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="species" class="form-label">Species:</label>
+                    <InputText id="species" @bind-Value="Pet.Species" class="form-control" />
+                    <ValidationMessage For="() => Pet.Species" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="breed" class="form-label">Breed:</label>
+                    <InputText id="breed" @bind-Value="Pet.Breed" class="form-control" />
+                    <ValidationMessage For="() => Pet.Breed" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="age" class="form-label">Age:</label>
+                    <InputNumber id="age" @bind-Value="Pet.Age" class="form-control" />
+                    <ValidationMessage For="() => Pet.Age" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="size" class="form-label">Size:</label>
+                    <InputText id="size" @bind-Value="Pet.Size" class="form-control" />
+                    <ValidationMessage For="() => Pet.Size" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="gender" class="form-label">Gender:</label>
+                    <InputText id="gender" @bind-Value="Pet.Gender" class="form-control" />
+                    <ValidationMessage For="() => Pet.Gender" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="temperament" class="form-label">Temperament:</label>
+                    <InputText id="temperament" @bind-Value="Pet.Temperament" class="form-control" />
+                    <ValidationMessage For="() => Pet.Temperament" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="medicalinfo" class="form-label">MedicalInfo:</label>
+                    <InputText id="medicalinfo" @bind-Value="Pet.MedicalInfo" class="form-control" />
+                    <ValidationMessage For="() => Pet.MedicalInfo" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description:</label>
+                    <InputText id="description" @bind-Value="Pet.Description" class="form-control" />
+                    <ValidationMessage For="() => Pet.Description" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="status" class="form-label">Status:</label>
+                    <InputText id="status" @bind-Value="Pet.Status" class="form-control" />
+                    <ValidationMessage For="() => Pet.Status" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="datecreated" class="form-label">DateCreated:</label>
+                    <InputDate id="datecreated" @bind-Value="Pet.DateCreated" class="form-control" />
+                    <ValidationMessage For="() => Pet.DateCreated" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="dateupdated" class="form-label">DateUpdated:</label>
+                    <InputDate id="dateupdated" @bind-Value="Pet.DateUpdated" class="form-control" />
+                    <ValidationMessage For="() => Pet.DateUpdated" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="createdby" class="form-label">CreatedBy:</label>
+                    <InputText id="createdby" @bind-Value="Pet.CreatedBy" class="form-control" />
+                    <ValidationMessage For="() => Pet.CreatedBy" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="updatedby" class="form-label">UpdatedBy:</label>
+                    <InputText id="updatedby" @bind-Value="Pet.UpdatedBy" class="form-control" />
+                    <ValidationMessage For="() => Pet.UpdatedBy" class="text-danger" />
+                </div>
+                <button type="submit" class="btn btn-primary">Save</button>
+            </EditForm>
+        </div>
+    </div>
+}
+
+<div>
+    <a href="/pets">Back to List</a>
+</div>
+
+@code {
+    [SupplyParameterFromQuery]
+    private int Id { get; set; }
+
+    [SupplyParameterFromForm]
+    private Pet? Pet { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        Pet ??= await context.Pet.FirstOrDefaultAsync(m => m.Id == Id);
+
+        if (Pet is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+    }
+
+    // To protect from overposting attacks, enable the specific properties you want to bind to.
+    // For more information, see https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.
+    private async Task UpdatePet()
+    {
+        using var context = DbFactory.CreateDbContext();
+        context.Attach(Pet!).State = EntityState.Modified;
+
+        try
+        {
+            await context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            if (!PetExists(Pet!.Id))
+            {
+                NavigationManager.NavigateTo("notfound");
+            }
+            else
+            {
+                throw;
+            }
+        }
+
+        NavigationManager.NavigateTo("/pets");
+    }
+
+    private bool PetExists(int id)
+    {
+        using var context = DbFactory.CreateDbContext();
+        return context.Pet.Any(e => e.Id == id);
+    }
+}

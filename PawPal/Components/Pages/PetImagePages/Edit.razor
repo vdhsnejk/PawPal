@@ -1,0 +1,119 @@
+﻿@page "/petimages/edit"
+@using Microsoft.EntityFrameworkCore
+@using PawPal.Domain
+@inject IDbContextFactory<PawPal.Data.PawPalContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Edit</PageTitle>
+
+<h1>Edit</h1>
+
+<h2>PetImage</h2>
+<hr />
+@if (PetImage is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-4">
+            <EditForm method="post" Model="PetImage" OnValidSubmit="UpdatePetImage" FormName="edit" Enhance>
+                <DataAnnotationsValidator />
+                <ValidationSummary role="alert"/>
+                <input type="hidden" name="PetImage.Id" value="@PetImage.Id" />
+                <div class="mb-3">
+                    <label for="petid" class="form-label">PetId:</label>
+                    <InputNumber id="petid" @bind-Value="PetImage.PetId" class="form-control" />
+                    <ValidationMessage For="() => PetImage.PetId" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="imageurl" class="form-label">ImageUrl:</label>
+                    <InputText id="imageurl" @bind-Value="PetImage.ImageUrl" class="form-control" />
+                    <ValidationMessage For="() => PetImage.ImageUrl" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="isprimary" class="form-label">IsPrimary:</label>
+                    <InputCheckbox id="isprimary" @bind-Value="PetImage.IsPrimary" class="form-check-input" />
+                    <ValidationMessage For="() => PetImage.IsPrimary" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="datecreated" class="form-label">DateCreated:</label>
+                    <InputDate id="datecreated" @bind-Value="PetImage.DateCreated" class="form-control" />
+                    <ValidationMessage For="() => PetImage.DateCreated" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="dateupdated" class="form-label">DateUpdated:</label>
+                    <InputDate id="dateupdated" @bind-Value="PetImage.DateUpdated" class="form-control" />
+                    <ValidationMessage For="() => PetImage.DateUpdated" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="createdby" class="form-label">CreatedBy:</label>
+                    <InputText id="createdby" @bind-Value="PetImage.CreatedBy" class="form-control" />
+                    <ValidationMessage For="() => PetImage.CreatedBy" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="updatedby" class="form-label">UpdatedBy:</label>
+                    <InputText id="updatedby" @bind-Value="PetImage.UpdatedBy" class="form-control" />
+                    <ValidationMessage For="() => PetImage.UpdatedBy" class="text-danger" />
+                </div>
+                <button type="submit" class="btn btn-primary">Save</button>
+            </EditForm>
+        </div>
+    </div>
+}
+
+<div>
+    <a href="/petimages">Back to List</a>
+</div>
+
+@code {
+    [SupplyParameterFromQuery]
+    private int Id { get; set; }
+
+    [SupplyParameterFromForm]
+    private PetImage? PetImage { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        PetImage ??= await context.PetImage.FirstOrDefaultAsync(m => m.Id == Id);
+
+        if (PetImage is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+    }
+
+    // To protect from overposting attacks, enable the specific properties you want to bind to.
+    // For more information, see https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.
+    private async Task UpdatePetImage()
+    {
+        using var context = DbFactory.CreateDbContext();
+        context.Attach(PetImage!).State = EntityState.Modified;
+
+        try
+        {
+            await context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            if (!PetImageExists(PetImage!.Id))
+            {
+                NavigationManager.NavigateTo("notfound");
+            }
+            else
+            {
+                throw;
+            }
+        }
+
+        NavigationManager.NavigateTo("/petimages");
+    }
+
+    private bool PetImageExists(int id)
+    {
+        using var context = DbFactory.CreateDbContext();
+        return context.PetImage.Any(e => e.Id == id);
+    }
+}
