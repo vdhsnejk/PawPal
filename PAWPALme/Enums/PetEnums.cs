@@ -18,10 +18,10 @@
         Pending,
         Confirmed,
         Completed,
-        Cancelled
+        Cancelled, 
+        Denied   
     }
 
-    // --- ADD THIS MISSING ENUM ---
     public enum ApplicationStatus
     {
         Pending,

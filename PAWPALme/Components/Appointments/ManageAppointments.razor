@@ -47,7 +47,6 @@
                         {
                             <tr>
                                 <td>
-                                    @* FIX: Convert TimeSpan to DateTime for AM/PM formatting *@
                                     <div class="fw-bold">@appt.AppointmentDate.ToShortDateString()</div>
                                     <small class="text-muted">@DateTime.Today.Add(appt.AppointmentTime).ToString("hh:mm tt")</small>
                                 </td>
@@ -66,17 +65,21 @@
                                         @if (appt.Status == AppointmentStatus.Pending)
                                         {
                                             <button class="btn btn-sm btn-success" @onclick="() => OpenConfirmModal(appt)">Approve</button>
-                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => UpdateStatus(appt, AppointmentStatus.Cancelled)">Deny</button>
+                                            @* FIX: Use Denied status instead of Cancelled *@
+                                            <button class="btn btn-sm btn-outline-dark" @onclick="() => UpdateStatus(appt, AppointmentStatus.Denied)">Deny</button>
                                         }
                                         else if (appt.Status == AppointmentStatus.Confirmed)
                                         {
-                                            @* CRUD: Edit and Cancel enabled for Confirmed items *@
                                             <button class="btn btn-sm btn-outline-primary" @onclick="() => OpenConfirmModal(appt)">
                                                 <i class="bi bi-pencil-fill"></i> Edit
                                             </button>
                                             <button class="btn btn-sm btn-outline-danger" @onclick="() => ConfirmCancel(appt)">
                                                 <i class="bi bi-x-circle"></i> Cancel
                                             </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">Closed</span>
                                         }
                                     </div>
                                 </td>
@@ -89,7 +92,6 @@
     }
 </div>
 
-@* --- DETAILS MODAL (Read Only) --- *@
 @if (selectedAppointment != null)
 {
     <div class="modal fade show modal-backdrop-custom" tabindex="-1">
@@ -117,7 +119,6 @@
     </div>
 }
 
-@* --- ACTION MODAL (Approve / Edit) --- *@
 @if (confirmingAppointment != null)
 {
     <div class="modal fade show modal-backdrop-custom" tabindex="-1">
@@ -130,9 +131,7 @@
                     <button type="button" class="btn-close btn-close-white" @onclick="CloseConfirmModal"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="text-muted mb-3">
-                        Set the final date and time. The adopter will see these changes.
-                    </p>
+                    <p class="text-muted mb-3">Set the final date and time.</p>
 
                     <div class="row mb-3">
                         <div class="col-6">
@@ -147,10 +146,7 @@
 
                     <div class="mb-3">
                         <label class="form-label fw-bold">Shelter Remarks</label>
-                        <textarea class="form-control" rows="3"
-                                  placeholder="e.g. Rescheduled due to cleaning. Please bring ID."
-                                  @bind="confirmRemarks"></textarea>
-                        <small class="text-muted">Adopter will see this message.</small>
+                        <textarea class="form-control" rows="3" placeholder="e.g. Please bring ID." @bind="confirmRemarks"></textarea>
                     </div>
 
                     <div class="alert alert-light border small">
@@ -173,12 +169,8 @@
 @code {
     private IEnumerable<Appointment>? appointments;
     private ApplicationUser? currentUser;
-
-    // State for Modals
     private Appointment? selectedAppointment;
     private Appointment? confirmingAppointment;
-
-    // Form Fields
     private DateTime confirmDate;
     private DateTime confirmTime;
     private string confirmRemarks = "";
@@ -200,36 +192,27 @@
     private async Task LoadData()
     {
         if (currentUser?.ShelterId != null)
-        {
             appointments = await ApptRepo.GetByShelterIdAsync(currentUser.ShelterId.Value);
-        }
     }
 
     private void OpenConfirmModal(Appointment appt)
     {
         confirmingAppointment = appt;
-        // Pre-fill with existing data so user can edit it
         confirmDate = appt.AppointmentDate;
-        // FIX: Convert TimeSpan to DateTime for the input binding
         confirmTime = DateTime.Today.Add(appt.AppointmentTime);
         confirmRemarks = appt.ShelterRemarks ?? "";
     }
 
-    private void CloseConfirmModal()
-    {
-        confirmingAppointment = null;
-    }
+    private void CloseConfirmModal() => confirmingAppointment = null;
 
     private async Task FinalizeApproval()
     {
         if (confirmingAppointment != null)
         {
-            // Apply changes
             confirmingAppointment.AppointmentDate = confirmDate;
             confirmingAppointment.AppointmentTime = confirmTime.TimeOfDay;
             confirmingAppointment.ShelterRemarks = confirmRemarks;
-            confirmingAppointment.Status = AppointmentStatus.Confirmed; // Ensure it is set to confirmed
-
+            confirmingAppointment.Status = AppointmentStatus.Confirmed;
             await ApptRepo.UpdateAsync(confirmingAppointment);
             await LoadData();
             confirmingAppointment = null;
@@ -239,10 +222,7 @@
     private async Task ConfirmCancel(Appointment appt)
     {
         bool confirmed = await JS.InvokeAsync<bool>("confirm", "Are you sure you want to cancel this appointment?");
-        if (confirmed)
-        {
-            await UpdateStatus(appt, AppointmentStatus.Cancelled);
-        }
+        if (confirmed) await UpdateStatus(appt, AppointmentStatus.Cancelled);
     }
 
     private async Task UpdateStatus(Appointment appt, AppointmentStatus status)
@@ -255,10 +235,12 @@
     private void ViewDetails(Appointment appt) => selectedAppointment = appt;
     private void CloseDetails() => selectedAppointment = null;
 
+    // FIX: Added badge class for Denied
     private string GetBadgeClass(AppointmentStatus status) => status switch
     {
         AppointmentStatus.Confirmed => "bg-success",
         AppointmentStatus.Cancelled => "bg-danger",
+        AppointmentStatus.Denied => "bg-dark", // Different color for Denied
         AppointmentStatus.Pending => "bg-warning text-dark",
         _ => "bg-secondary"
     };
