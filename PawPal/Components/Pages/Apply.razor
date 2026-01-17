@@ -112,116 +112,90 @@
                             <ValidationSummary class="text-danger" />
 
                             <!-- Section 1: Contact -->
-                            <div class="border rounded-3 p-3 mb-3">
-                                <div class="fw-semibold mb-2">Contact Information</div>
-                                <div class="row g-3">
-                                    <div class="col-12 col-md-6">
-                                        <label class="form-label">Full Name</label>
-                                        <InputText class="form-control" @bind-Value="Form.FullName" />
+                            <div class="row g-3">
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Full Name</label>
+                                    <InputText class="form-control" @bind-Value="Form.FullName" />
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Phone Number</label>
+                                    <InputText class="form-control" @bind-Value="Form.PhoneNumber" />
+                                </div>
+
+                                <div class="col-12">
+                                    <label class="form-label">Home Address</label>
+                                    <InputText class="form-control" @bind-Value="Form.Address" />
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Housing Type</label>
+                                    <select class="form-select" @bind="Form.HousingType">
+                                        <option value="">Select...</option>
+                                        <option>HDB</option>
+                                        <option>Condo</option>
+                                        <option>Landed</option>
+                                        <option>Rental</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Average hours pet will be alone (per day)</label>
+                                    <InputNumber class="form-control" @bind-Value="Form.AvgHoursAlone" />
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <div class="form-check mt-2">
+                                        <InputCheckbox class="form-check-input" @bind-Value="Form.HasLandlordOrFamilyApproval" />
+                                        <label class="form-check-label">Landlord / family approval obtained</label>
                                     </div>
-                                    <div class="col-12 col-md-6">
-                                        <label class="form-label">Phone Number</label>
-                                        <InputText class="form-control" @bind-Value="Form.PhoneNumber" />
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <div class="form-check mt-2">
+                                        <InputCheckbox class="form-check-input" @bind-Value="Form.AnyoneAllergic" />
+                                        <label class="form-check-label">Someone at home is allergic to pets</label>
                                     </div>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <div class="form-check mt-2">
+                                        <InputCheckbox class="form-check-input" @bind-Value="Form.CurrentlyOwnPets" />
+                                        <label class="form-check-label">I currently own pets</label>
+                                    </div>
+                                </div>
+
+                                @if (Form.CurrentlyOwnPets)
+                                {
                                     <div class="col-12">
-                                        <label class="form-label">Home Address</label>
-                                        <InputText class="form-control" @bind-Value="Form.Address" />
+                                        <label class="form-label">Current pets (type / number)</label>
+                                        <InputTextArea class="form-control" rows="3" @bind-Value="Form.CurrentPetsDetails" />
                                     </div>
-                                </div>
-                            </div>
+                                }
 
-                            <!-- Section 2: Household -->
-                            <div class="border rounded-3 p-3 mb-3">
-                                <div class="fw-semibold mb-2">Household & Lifestyle</div>
-                                <div class="row g-3">
-                                    <div class="col-12 col-md-6">
-                                        <label class="form-label">Housing Type</label>
-                                        <InputSelect class="form-select" @bind-Value="Form.HousingType">
-                                            <option value="">Select</option>
-                                            <option>HDB</option>
-                                            <option>Condominium</option>
-                                            <option>Landed</option>
-                                            <option>Other</option>
-                                        </InputSelect>
-                                    </div>
-
-                                    <div class="col-12 col-md-6">
-                                        <label class="form-label">Do you have landlord / family approval?</label>
-                                        <InputSelect class="form-select" @bind-Value="Form.HasApproval">
-                                            <option value="">Select</option>
-                                            <option>Yes</option>
-                                            <option>No</option>
-                                            <option>Not Applicable</option>
-                                        </InputSelect>
-                                    </div>
-
-                                    <div class="col-12 col-md-6">
-                                        <label class="form-label">Anyone in the household allergic to pets?</label>
-                                        <InputSelect class="form-select" @bind-Value="Form.HasAllergies">
-                                            <option value="">Select</option>
-                                            <option>No</option>
-                                            <option>Yes</option>
-                                            <option>Not sure</option>
-                                        </InputSelect>
-                                    </div>
-
-                                    <div class="col-12 col-md-6">
-                                        <label class="form-label">Average hours pet will be alone per day</label>
-                                        <InputNumber class="form-control" @bind-Value="Form.HoursAlone" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Section 3: Experience -->
-                            <div class="border rounded-3 p-3 mb-3">
-                                <div class="fw-semibold mb-2">Pet Ownership Experience</div>
-
-                                <div class="mb-3">
-                                    <label class="form-label">Do you currently own any pets?</label>
-                                    <InputSelect class="form-select" @bind-Value="Form.CurrentlyHasPets">
-                                        <option value="">Select</option>
-                                        <option>No</option>
-                                        <option>Yes</option>
-                                    </InputSelect>
+                                <div class="col-12">
+                                    <label class="form-label">Briefly describe your pet experience</label>
+                                    <InputTextArea class="form-control" rows="3" @bind-Value="Form.PetExperienceDetails" />
                                 </div>
 
-                                <div class="mb-3">
-                                    <label class="form-label">Briefly describe your experience with pets</label>
-                                    <InputTextArea class="form-control" rows="3" @bind-Value="Form.Experience" />
-                                </div>
-                            </div>
-
-                            <!-- Section 4: Motivation -->
-                            <div class="border rounded-3 p-3 mb-3">
-                                <div class="fw-semibold mb-2">Motivation & Commitment</div>
-
-                                <div class="mb-3">
-                                    <label class="form-label">Why do you want to adopt @Pet.Name?</label>
-                                    <InputTextArea class="form-control" rows="3" @bind-Value="Form.Reason" />
+                                <div class="col-12">
+                                    <label class="form-label">Why do you want to adopt?</label>
+                                    <InputTextArea class="form-control" rows="4" @bind-Value="Form.ReasonForAdoption" />
                                 </div>
 
-                                <div class="mb-3">
-                                    <label class="form-label">Who will be the primary caregiver?</label>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Primary caregiver</label>
                                     <InputText class="form-control" @bind-Value="Form.PrimaryCaregiver" />
                                 </div>
 
-                                <div class="mb-0">
-                                    <label class="form-label">Are you prepared for regular vet care and costs?</label>
-                                    <InputSelect class="form-select" @bind-Value="Form.VetCareReady">
-                                        <option value="">Select</option>
-                                        <option>Yes</option>
-                                        <option>No</option>
-                                        <option>Not sure</option>
-                                    </InputSelect>
+                                <div class="col-12 col-md-6">
+                                    <div class="form-check mt-4">
+                                        <InputCheckbox class="form-check-input" @bind-Value="Form.PreparedForVetCare" />
+                                        <label class="form-check-label">Prepared for vet care costs</label>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-3">
-                                <div class="text-muted small">By submitting, you confirm the information provided is accurate.</div>
-                                <button class="btn btn-success px-4" type="submit" disabled="@Submitting">
-                                    @(Submitting ? "Submitting..." : "Submit Application")
-                                </button>
-                            </div>
                         </EditForm>
                     </div>
                 </div>
@@ -292,9 +266,24 @@
                 FullName = Form.FullName,
                 PhoneNumber = Form.PhoneNumber,
                 Address = Form.Address,
-                Reason = Form.Reason,
-                Experience = Form.Experience
+
+                HousingType = Form.HousingType,
+                HasLandlordOrFamilyApproval = Form.HasLandlordOrFamilyApproval,
+                AnyoneAllergic = Form.AnyoneAllergic,
+                AvgHoursAlone = Form.AvgHoursAlone,
+
+                CurrentlyOwnPets = Form.CurrentlyOwnPets,
+                CurrentPetsDetails = Form.CurrentPetsDetails,
+                PetExperienceDetails = Form.PetExperienceDetails,
+
+                ReasonForAdoption = Form.ReasonForAdoption,
+                PrimaryCaregiver = Form.PrimaryCaregiver,
+                PreparedForVetCare = Form.PreparedForVetCare
             };
+
+            Db.AdoptionApplication.Add(application);
+            await Db.SaveChangesAsync();
+
 
 
             Db.AdoptionApplication.Add(application); // if your DbSet is singular; if plural, change accordingly
@@ -314,20 +303,22 @@
 
     private class ApplyFormModel
     {
-        [Required] public string FullName { get; set; } = "";
-        [Required] public string PhoneNumber { get; set; } = "";
-        [Required] public string Address { get; set; } = "";
+        public string FullName { get; set; } = "";
+        public string PhoneNumber { get; set; } = "";
+        public string Address { get; set; } = "";
 
-        [Required] public string HousingType { get; set; } = "";
-        [Required] public string HasApproval { get; set; } = "";
-        [Required] public string HasAllergies { get; set; } = "";
-        [Range(0, 24)] public int HoursAlone { get; set; }
+        public string HousingType { get; set; } = "";
+        public bool HasLandlordOrFamilyApproval { get; set; }
+        public bool AnyoneAllergic { get; set; }
+        public int AvgHoursAlone { get; set; } = 0;
 
-        [Required] public string CurrentlyHasPets { get; set; } = "";
-        [Required] public string Experience { get; set; } = "";
+        public bool CurrentlyOwnPets { get; set; }
+        public string? CurrentPetsDetails { get; set; }
+        public string? PetExperienceDetails { get; set; }
 
-        [Required] public string Reason { get; set; } = "";
-        [Required] public string PrimaryCaregiver { get; set; } = "";
-        [Required] public string VetCareReady { get; set; } = "";
+        public string ReasonForAdoption { get; set; } = "";
+        public string PrimaryCaregiver { get; set; } = "";
+        public bool PreparedForVetCare { get; set; }
     }
+
 }
