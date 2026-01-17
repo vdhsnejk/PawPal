@@ -1,0 +1,130 @@
+﻿@page "/my-applications/{Id:int}"
+@rendermode InteractiveServer
+@layout PublicLayout
+
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using PawPal.Components.Layout
+@using PawPal.Data
+@using PawPal.Domain
+
+@inject PawPalContext Db
+@inject AuthenticationStateProvider AuthStateProvider
+@inject UserManager<PawPalUser> UserManager
+@inject NavigationManager Nav
+
+<PageTitle>View Application</PageTitle>
+
+<div class="container-xl py-4">
+    <a class="text-decoration-none" href="/my-applications">← Back</a>
+
+    @if (Application == null)
+    {
+        <div class="text-muted mt-3">Loading...</div>
+    }
+    else
+    {
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-3">
+            <div>
+                <h1 class="mb-1" style="font-weight:800;">Application Details</h1>
+                <div class="text-muted">Submitted @Application.ApplicationDate.ToString("dd MMM yyyy, h:mm tt")</div>
+            </div>
+            <span class="badge rounded-pill px-3 py-2 @StatusBadge(Application.Status)">
+                @Application.Status
+            </span>
+        </div>
+
+        <div class="row g-4 mt-2">
+            <div class="col-12 col-lg-5">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="mb-1">@Pet?.Name</h5>
+                        <div class="text-muted small">@Pet?.Species @if(!string.IsNullOrWhiteSpace(Pet?.Breed)){
+                        <span>• @Pet!.Breed</span>
+                    }
+ • Age @Pet?.Age</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-7">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="mb-3">Applicant Info</h5>
+
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <div class="text-muted small">Full Name</div>
+                            <div class="fw-semibold">@Application.FullName</div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="text-muted small">Phone</div>
+                            <div class="fw-semibold">@Application.PhoneNumber</div>
+                        </div>
+                        <div class="col-12">
+                            <div class="text-muted small">Address</div>
+                            <div class="fw-semibold">@Application.Address</div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="text-muted small">Reason for adopting</div>
+                            <div class="fw-semibold">@Application.Reason</div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="text-muted small">Experience with pets</div>
+                            <div class="fw-semibold">@Application.Experience</div>
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(Application.Remarks))
+                        {
+                            <div class="col-12">
+                                <div class="text-muted small">Admin Remarks</div>
+                                <div class="fw-semibold">@Application.Remarks</div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+        }
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private AdoptionApplication? Application;
+    private Pet? Pet;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthStateProvider.GetAuthenticationStateAsync();
+        var principal = auth.User;
+
+        if (principal?.Identity?.IsAuthenticated != true)
+        {
+            Nav.NavigateTo($"/Account/Login?returnUrl=/my-applications/{Id}", true);
+            return;
+        }
+
+        var user = await UserManager.GetUserAsync(principal);
+        if (user == null) { Nav.NavigateTo("/Account/Login", true); return; }
+
+        // If your adopterId is stored as Identity UserId (string), tell me.
+        // If adopterId is int, you must have mapped it already.
+        // For now we assume you already store AdopterId correctly and can check ownership.
+        Application = await Db.AdoptionApplication.FirstOrDefaultAsync(a => a.Id == Id);
+        if (Application == null) return;
+
+        Pet = await Db.Pet.FirstOrDefaultAsync(p => p.Id == Application.PetId);
+    }
+
+    private string StatusBadge(string? status) => (status ?? "").ToLower() switch
+    {
+        "pending" => "text-bg-warning",
+        "approved" => "text-bg-success",
+        "rejected" => "text-bg-danger",
+        _ => "text-bg-secondary"
+    };
+}

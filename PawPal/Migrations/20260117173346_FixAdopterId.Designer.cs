@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PawPal.Data;
 
@@ -11,9 +12,11 @@ using PawPal.Data;
 namespace PawPal.Migrations
 {
     [DbContext(typeof(PawPalContext))]
-    partial class PawPalContextModelSnapshot : ModelSnapshot
+    [Migration("20260117173346_FixAdopterId")]
+    partial class FixAdopterId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -251,7 +254,7 @@ namespace PawPal.Migrations
                         {
                             Id = "a4c8d9c1-2d12-4b7b-9e8a-333333333333",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "fe7ae49a-4298-414b-8c42-d773e73a0a76",
+                            ConcurrencyStamp = "ba8fdfcf-adc7-40ac-9c9d-d242a60ed5c5",
                             Email = "admin@localhost.com",
                             EmailConfirmed = true,
                             FirstName = "Admin",
@@ -259,9 +262,9 @@ namespace PawPal.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@LOCALHOST.COM",
                             NormalizedUserName = "ADMIN@LOCALHOST.COM",
-                            PasswordHash = "AQAAAAIAAYagAAAAEPzZJFpiW1t5LJNRpEQ99gURihtTRjbRTHG0b8P1WzOh1nCg6jgiT7n8Vj7jGRL0wA==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEN2vcRkbrr4ud1lGEKqZu0Ur1LIzu/TceXtqt+XLn3vX4jR9RQnMFWQwMumz3RxmWA==",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "3d24bf0d-a6bc-42b9-a657-b1e2c2035f2b",
+                            SecurityStamp = "02b76381-c429-4f2c-9512-623271025348",
                             TwoFactorEnabled = false,
                             UserName = "admin@localhost.com"
                         });
@@ -274,13 +277,6 @@ namespace PawPal.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Address")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("AdminRemarks")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("AdopterId")
                         .IsRequired()
@@ -298,30 +294,14 @@ namespace PawPal.Migrations
                     b.Property<DateTime>("DateUpdated")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Experience")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<int>("PetId")
                         .HasColumnType("int");
-
-                    b.Property<string>("PhoneNumber")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Remarks")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("ReviewedByAdminId")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int?>("ReviewedByAdminId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("ReviewedDateTime")
                         .HasColumnType("datetime2");
@@ -455,8 +435,8 @@ namespace PawPal.Migrations
                             Age = 2,
                             Breed = "Mixed",
                             CreatedBy = "System",
-                            DateCreated = new DateTime(2026, 1, 18, 2, 37, 48, 724, DateTimeKind.Local).AddTicks(8401),
-                            DateUpdated = new DateTime(2026, 1, 18, 2, 37, 48, 724, DateTimeKind.Local).AddTicks(8402),
+                            DateCreated = new DateTime(2026, 1, 18, 1, 33, 45, 30, DateTimeKind.Local).AddTicks(1479),
+                            DateUpdated = new DateTime(2026, 1, 18, 1, 33, 45, 30, DateTimeKind.Local).AddTicks(1480),
                             Description = "Playful and loves walks",
                             Gender = "Male",
                             MedicalInfo = "Vaccinated",
@@ -474,8 +454,8 @@ namespace PawPal.Migrations
                             Age = 3,
                             Breed = "Domestic Shorthair",
                             CreatedBy = "System",
-                            DateCreated = new DateTime(2026, 1, 18, 2, 37, 48, 724, DateTimeKind.Local).AddTicks(8410),
-                            DateUpdated = new DateTime(2026, 1, 18, 2, 37, 48, 724, DateTimeKind.Local).AddTicks(8411),
+                            DateCreated = new DateTime(2026, 1, 18, 1, 33, 45, 30, DateTimeKind.Local).AddTicks(1486),
+                            DateUpdated = new DateTime(2026, 1, 18, 1, 33, 45, 30, DateTimeKind.Local).AddTicks(1487),
                             Description = "Quiet and affectionate",
                             Gender = "Female",
                             MedicalInfo = "Sterilised",
@@ -528,8 +508,8 @@ namespace PawPal.Migrations
                         {
                             Id = 1,
                             CreatedBy = "System",
-                            DateCreated = new DateTime(2026, 1, 18, 2, 37, 48, 724, DateTimeKind.Local).AddTicks(8533),
-                            DateUpdated = new DateTime(2026, 1, 18, 2, 37, 48, 724, DateTimeKind.Local).AddTicks(8534),
+                            DateCreated = new DateTime(2026, 1, 18, 1, 33, 45, 30, DateTimeKind.Local).AddTicks(1633),
+                            DateUpdated = new DateTime(2026, 1, 18, 1, 33, 45, 30, DateTimeKind.Local).AddTicks(1634),
                             ImageUrl = "/images/pets/milo-1.jpg",
                             IsPrimary = true,
                             PetId = 1,
@@ -539,8 +519,8 @@ namespace PawPal.Migrations
                         {
                             Id = 2,
                             CreatedBy = "System",
-                            DateCreated = new DateTime(2026, 1, 18, 2, 37, 48, 724, DateTimeKind.Local).AddTicks(8538),
-                            DateUpdated = new DateTime(2026, 1, 18, 2, 37, 48, 724, DateTimeKind.Local).AddTicks(8538),
+                            DateCreated = new DateTime(2026, 1, 18, 1, 33, 45, 30, DateTimeKind.Local).AddTicks(1638),
+                            DateUpdated = new DateTime(2026, 1, 18, 1, 33, 45, 30, DateTimeKind.Local).AddTicks(1638),
                             ImageUrl = "/images/pets/luna-1.jpg",
                             IsPrimary = true,
                             PetId = 2,
@@ -593,8 +573,8 @@ namespace PawPal.Migrations
                             Id = 1,
                             Address = "Tampines, Singapore",
                             CreatedBy = "System",
-                            DateCreated = new DateTime(2026, 1, 18, 2, 37, 48, 724, DateTimeKind.Local).AddTicks(8088),
-                            DateUpdated = new DateTime(2026, 1, 18, 2, 37, 48, 724, DateTimeKind.Local).AddTicks(8089),
+                            DateCreated = new DateTime(2026, 1, 18, 1, 33, 45, 30, DateTimeKind.Local).AddTicks(1231),
+                            DateUpdated = new DateTime(2026, 1, 18, 1, 33, 45, 30, DateTimeKind.Local).AddTicks(1232),
                             Email = "hello@pawpal.sg",
                             PhoneNumber = "6123 4567",
                             ShelterName = "PawPal Rescue Centre",

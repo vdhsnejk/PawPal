@@ -17,43 +17,78 @@
 <!-- Main navbar -->
 <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
     <div class="container">
+
+        <!-- Brand -->
         <NavLink class="navbar-brand fw-bold text-success" href="/">
             PawPal
         </NavLink>
 
+        <!-- Mobile toggle -->
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#publicNav">
             <span class="navbar-toggler-icon"></span>
         </button>
 
+        <!-- Menu -->
         <div class="collapse navbar-collapse" id="publicNav">
             <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
+
+                <!-- Public links -->
                 <li class="nav-item">
                     <NavLink class="nav-link" href="/pets">Adopt</NavLink>
                 </li>
+
                 <li class="nav-item">
                     <NavLink class="nav-link" href="/adoption-process">Adoption Process</NavLink>
                 </li>
+
                 <li class="nav-item">
                     <NavLink class="nav-link" href="/about">About</NavLink>
                 </li>
 
-                <li class="nav-item ms-lg-3">
-                    <NavLink class="btn btn-outline-success" href="/Account/Login">Login</NavLink>
-                </li>
-                <li class="nav-item">
-                    <NavLink class="btn btn-success" href="/Account/Register">Register</NavLink>
-                </li>
+                <!-- AUTH HANDLING -->
+                <AuthorizeView>
+                    <Authorized>
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="/my-applications">
+                                My Applications
+                            </NavLink>
+                        </li>
+
+                        <li class="nav-item ms-lg-3">
+                            <NavLink class="btn btn-outline-success" href="/Account/Logout">
+                                Logout
+                            </NavLink>
+                        </li>
+                    </Authorized>
+
+                    <NotAuthorized>
+                        <li class="nav-item ms-lg-3">
+                            <NavLink class="btn btn-outline-success" href="/Account/Login">
+                                Login
+                            </NavLink>
+                        </li>
+
+                        <li class="nav-item">
+                            <NavLink class="btn btn-success" href="/Account/Register">
+                                Register
+                            </NavLink>
+                        </li>
+                    </NotAuthorized>
+                </AuthorizeView>
+
             </ul>
         </div>
     </div>
 </nav>
 
-<!-- Body -->
-@Body
+<!-- Page content -->
+<main>
+    @Body
+</main>
 
 <!-- Footer -->
 <footer class="bg-light mt-5 border-top">
-    <div class="container py-4 small text-muted d-flex justify-content-between">
+    <div class="container py-4 small text-muted d-flex justify-content-between flex-wrap gap-2">
         <span>© @DateTime.Now.Year PawPal</span>
         <span>Adopt responsibly • Verified shelters</span>
     </div>

@@ -1,0 +1,13 @@
+﻿@page "/Account/Logout"
+@using Microsoft.AspNetCore.Identity
+@using PawPal.Data
+@inject SignInManager<PawPalUser> SignInManager
+@inject NavigationManager Nav
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await SignInManager.SignOutAsync();
+        Nav.NavigateTo("/", true);
+    }
+}

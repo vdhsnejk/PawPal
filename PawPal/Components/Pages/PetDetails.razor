@@ -89,11 +89,24 @@
                         </div>
                     </div>
 
-                    <div class="d-grid mt-4">
-                        <a class="btn btn-success btn-lg" href="@($"/apply/{Pet.Id}")">
-                            Apply to Adopt <i class="bi bi-arrow-right ms-1"></i>
-                        </a>
-                    </div>
+                    <AuthorizeView>
+                        <Authorized>
+                            <div class="d-grid mt-4">
+                                <a class="btn btn-success btn-lg" href="@($"/apply/{Pet.Id}")">
+                                    Apply to Adopt <i class="bi bi-arrow-right ms-1"></i>
+                                </a>
+                            </div>
+                        </Authorized>
+
+                        <NotAuthorized>
+                            <div class="d-grid mt-4">
+                                <a class="btn btn-success btn-lg" href="@($"/Account/Login?returnUrl=/apply/{Pet.Id}")">
+                                    Login to Apply <i class="bi bi-arrow-right ms-1"></i>
+                                </a>
+                            </div>
+                        </NotAuthorized>
+                    </AuthorizeView>
+
 
                     <div class="text-muted small text-center mt-2">
                         Please sign in to submit an application.

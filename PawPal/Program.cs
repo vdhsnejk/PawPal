@@ -61,4 +61,25 @@ app.MapRazorComponents<App>()
 
 app.MapAdditionalIdentityEndpoints();;
 
+//using (var scope = app.Services.CreateScope())
+//{
+//    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+//    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<PawPalUser>>();
+
+//    if (!await roleManager.RoleExistsAsync("Administrator"))
+//        await roleManager.CreateAsync(new IdentityRole("Administrator"));
+
+//    var adminEmail = "admin@pawpal.sg";
+//    var admin = await userManager.FindByEmailAsync(adminEmail);
+//    if (admin == null)
+//    {
+//        admin = new PawPalUser { UserName = adminEmail, Email = adminEmail, EmailConfirmed = true };
+//        await userManager.CreateAsync(admin, "Admin123!");
+//    }
+
+//    if (!await userManager.IsInRoleAsync(admin, "Administrator"))
+//        await userManager.AddToRoleAsync(admin, "Administrator");
+//}
+
+
 app.Run();

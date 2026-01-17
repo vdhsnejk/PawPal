@@ -1,10 +1,12 @@
-﻿
-@page "/apply/{PetId:int}"
+﻿@page "/apply/{PetId:int}"
 @rendermode InteractiveServer
-@layout PawPal.Components.Layout.PublicLayout
+@layout PublicLayout
+@using PawPal.Components.Layout
 
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.ComponentModel.DataAnnotations
 @using PawPal.Data
 @using PawPal.Domain
 
@@ -13,22 +15,24 @@
 @inject UserManager<PawPalUser> UserManager
 @inject AuthenticationStateProvider AuthStateProvider
 
-<PageTitle>Apply to Adopt</PageTitle>
-
-<div class="page-hero py-4">
-    <div class="container-xl">
-        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-            <div>
-                <a class="text-decoration-none" href="/pets">← Back to Browse</a>
-                <h1 class="mt-2 mb-1" style="font-weight:800;">Adoption Application</h1>
-                <div class="text-muted">You only need an account to submit an application.</div>
-            </div>
-            <span class="badge rounded-pill text-bg-success px-3 py-2">@Pet?.Status</span>
-        </div>
-    </div>
-</div>
+<PageTitle>Adoption Application</PageTitle>
 
 <div class="container-xl py-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+        <div>
+            <a class="text-decoration-none text-success fw-semibold" href="/pets">← Back to Browse</a>
+            <h2 class="mt-2 mb-0 fw-bold">Adoption Application</h2>
+            <div class="text-muted">Please fill in the form. The shelter will review your application.</div>
+        </div>
+
+        @if (Pet != null)
+        {
+            <span class="badge rounded-pill @(Pet.Status == "Available" ? "text-bg-success" : "text-bg-secondary") px-3 py-2">
+                @Pet.Status
+            </span>
+        }
+    </div>
+
     @if (Pet == null)
     {
         <div class="text-muted">Loading...</div>
@@ -36,110 +40,194 @@
     else
     {
         <div class="row g-4">
-            <!-- LEFT: Pet summary -->
+            <!-- LEFT: Pet Summary -->
             <div class="col-12 col-lg-5">
-                <div class="hero-card">
-                    <img class="pet-thumb" src="@PetImageUrl" alt="Pet photo" />
-                    <div class="p-4">
-                        <h3 class="mb-1" style="font-weight:800;">@Pet.Name</h3>
-                        <div class="text-muted">@Pet.Species @if(!string.IsNullOrWhiteSpace(Pet.Breed)){
-                        <span>• @Pet.Breed</span>
-                    }
- • Age @Pet.Age</div>
+                <div class="card shadow-sm border-0 sticky-lg-top" style="top: 90px;">
+                    <img src="@PetImageUrl" class="card-img-top" style="height:260px; object-fit:cover;" alt="Pet photo" />
+                    <div class="card-body">
+                        <h4 class="fw-bold mb-1">@Pet.Name</h4>
+                        <div class="text-muted mb-3">
+                            @Pet.Species
+                            @if (!string.IsNullOrWhiteSpace(Pet.Breed))
+                            {
+                                <span>• @Pet.Breed</span>
+                            }
+                            <span>• Age @Pet.Age</span>
+                        </div>
 
-                    <div class="d-flex flex-wrap gap-2 mt-3">
-                        @if (!string.IsNullOrWhiteSpace(Pet.Size))
+                        <div class="d-flex flex-wrap gap-2 mb-3">
+                            @if (!string.IsNullOrWhiteSpace(Pet.Size))
+                            {
+                                <span class="badge bg-light text-dark border">Size: @Pet.Size</span>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(Pet.Gender))
+                            {
+                                <span class="badge bg-light text-dark border">Gender: @Pet.Gender</span>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(Pet.Temperament))
+                            {
+                                <span class="badge bg-light text-dark border">@Pet.Temperament</span>
+                            }
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(Pet.Description))
                         {
-                            <span class="badge text-bg-light border">Size: @Pet.Size</span>
+                            <div class="mb-3">
+                                <div class="fw-semibold">About</div>
+                                <div class="text-muted">@Pet.Description</div>
+                            </div>
                         }
-                        @if (!string.IsNullOrWhiteSpace(Pet.Gender))
+
+                        @if (!string.IsNullOrWhiteSpace(Pet.MedicalInfo))
                         {
-                            <span class="badge text-bg-light border">Gender: @Pet.Gender</span>
-                        }
-                        @if (!string.IsNullOrWhiteSpace(Pet.Temperament))
-                        {
-                            <span class="badge text-bg-light border">@Pet.Temperament</span>
+                            <div>
+                                <div class="fw-semibold">Medical Info</div>
+                                <div class="text-muted">@Pet.MedicalInfo</div>
+                            </div>
                         }
                     </div>
+                </div>
+            </div>
 
-                    @if (!string.IsNullOrWhiteSpace(Pet.Description))
-                    {
-                        <div class="mt-3 section-card p-3">
-                            <div class="fw-semibold mb-1">About</div>
-                            <div class="text-muted">@Pet.Description</div>
-                        </div>
-                    }
+            <!-- RIGHT: Application Form -->
+            <div class="col-12 col-lg-7">
+                <div class="card shadow-sm border-0">
+                    <div class="card-body p-4">
+                        <h4 class="fw-bold mb-1">Applicant Details</h4>
+                        <div class="text-muted mb-3">All fields help the shelter assess suitability and readiness.</div>
 
-                    @if (!string.IsNullOrWhiteSpace(Pet.MedicalInfo))
-                    {
-                        <div class="mt-3 section-card p-3">
-                            <div class="fw-semibold mb-1">Medical Info</div>
-                            <div class="text-muted">@Pet.MedicalInfo</div>
-                        </div>
-                    }
+                        @if (!string.IsNullOrEmpty(Error))
+                        {
+                            <div class="alert alert-danger">@Error</div>
+                        }
+                        @if (Success)
+                        {
+                            <div class="alert alert-success">
+                                Application submitted! Track it in <a class="fw-semibold" href="/my-applications">My Applications</a>.
+                            </div>
+                        }
+
+                        <EditForm Model="Form" OnValidSubmit="SubmitAsync">
+                            <DataAnnotationsValidator />
+                            <ValidationSummary class="text-danger" />
+
+                            <!-- Section 1: Contact -->
+                            <div class="border rounded-3 p-3 mb-3">
+                                <div class="fw-semibold mb-2">Contact Information</div>
+                                <div class="row g-3">
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label">Full Name</label>
+                                        <InputText class="form-control" @bind-Value="Form.FullName" />
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label">Phone Number</label>
+                                        <InputText class="form-control" @bind-Value="Form.PhoneNumber" />
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label">Home Address</label>
+                                        <InputText class="form-control" @bind-Value="Form.Address" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Section 2: Household -->
+                            <div class="border rounded-3 p-3 mb-3">
+                                <div class="fw-semibold mb-2">Household & Lifestyle</div>
+                                <div class="row g-3">
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label">Housing Type</label>
+                                        <InputSelect class="form-select" @bind-Value="Form.HousingType">
+                                            <option value="">Select</option>
+                                            <option>HDB</option>
+                                            <option>Condominium</option>
+                                            <option>Landed</option>
+                                            <option>Other</option>
+                                        </InputSelect>
+                                    </div>
+
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label">Do you have landlord / family approval?</label>
+                                        <InputSelect class="form-select" @bind-Value="Form.HasApproval">
+                                            <option value="">Select</option>
+                                            <option>Yes</option>
+                                            <option>No</option>
+                                            <option>Not Applicable</option>
+                                        </InputSelect>
+                                    </div>
+
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label">Anyone in the household allergic to pets?</label>
+                                        <InputSelect class="form-select" @bind-Value="Form.HasAllergies">
+                                            <option value="">Select</option>
+                                            <option>No</option>
+                                            <option>Yes</option>
+                                            <option>Not sure</option>
+                                        </InputSelect>
+                                    </div>
+
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label">Average hours pet will be alone per day</label>
+                                        <InputNumber class="form-control" @bind-Value="Form.HoursAlone" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Section 3: Experience -->
+                            <div class="border rounded-3 p-3 mb-3">
+                                <div class="fw-semibold mb-2">Pet Ownership Experience</div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Do you currently own any pets?</label>
+                                    <InputSelect class="form-select" @bind-Value="Form.CurrentlyHasPets">
+                                        <option value="">Select</option>
+                                        <option>No</option>
+                                        <option>Yes</option>
+                                    </InputSelect>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Briefly describe your experience with pets</label>
+                                    <InputTextArea class="form-control" rows="3" @bind-Value="Form.Experience" />
+                                </div>
+                            </div>
+
+                            <!-- Section 4: Motivation -->
+                            <div class="border rounded-3 p-3 mb-3">
+                                <div class="fw-semibold mb-2">Motivation & Commitment</div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Why do you want to adopt @Pet.Name?</label>
+                                    <InputTextArea class="form-control" rows="3" @bind-Value="Form.Reason" />
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Who will be the primary caregiver?</label>
+                                    <InputText class="form-control" @bind-Value="Form.PrimaryCaregiver" />
+                                </div>
+
+                                <div class="mb-0">
+                                    <label class="form-label">Are you prepared for regular vet care and costs?</label>
+                                    <InputSelect class="form-select" @bind-Value="Form.VetCareReady">
+                                        <option value="">Select</option>
+                                        <option>Yes</option>
+                                        <option>No</option>
+                                        <option>Not sure</option>
+                                    </InputSelect>
+                                </div>
+                            </div>
+
+                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-3">
+                                <div class="text-muted small">By submitting, you confirm the information provided is accurate.</div>
+                                <button class="btn btn-success px-4" type="submit" disabled="@Submitting">
+                                    @(Submitting ? "Submitting..." : "Submit Application")
+                                </button>
+                            </div>
+                        </EditForm>
+                    </div>
                 </div>
             </div>
         </div>
-
-        <!-- RIGHT: Application form -->
-        <div class="col-12 col-lg-7">
-            <div class="section-card p-4">
-                <h4 class="mb-1" style="font-weight:800;">Your Details</h4>
-                <div class="helper mb-3">Fill in the form below. The shelter will review and get back to you.</div>
-
-                @if (!string.IsNullOrEmpty(Error))
-                {
-                    <div class="alert alert-danger">@Error</div>
-                }
-                @if (Success)
-                {
-                    <div class="alert alert-success">
-                        Application submitted! You can track it in <a href="/my-applications">My Applications</a>.
-                    </div>
-                }
-
-                <EditForm Model="Form" OnValidSubmit="SubmitAsync">
-                    <DataAnnotationsValidator />
-                    <ValidationSummary />
-
-                    <div class="row g-3">
-                        <div class="col-12 col-md-6">
-                            <label class="form-label">Full Name</label>
-                            <InputText class="form-control" @bind-Value="Form.FullName" />
-                        </div>
-
-                        <div class="col-12 col-md-6">
-                            <label class="form-label">Phone Number</label>
-                            <InputText class="form-control" @bind-Value="Form.PhoneNumber" />
-                        </div>
-
-                        <div class="col-12">
-                            <label class="form-label">Home Address</label>
-                            <InputText class="form-control" @bind-Value="Form.Address" />
-                        </div>
-
-                        <div class="col-12">
-                            <label class="form-label">Why do you want to adopt @Pet.Name?</label>
-                            <InputTextArea class="form-control" rows="4" @bind-Value="Form.Reason" />
-                        </div>
-
-                        <div class="col-12">
-                            <label class="form-label">Do you have experience with pets?</label>
-                            <InputTextArea class="form-control" rows="3" @bind-Value="Form.Experience" />
-                        </div>
-                    </div>
-
-                    <div class="d-flex align-items-center justify-content-between mt-4 flex-wrap gap-2">
-                        <div class="helper">By submitting, you confirm your details are accurate.</div>
-                        <button class="btn btn-success px-4" type="submit" disabled="@Submitting">
-                            @(Submitting ? "Submitting..." : "Submit Application")
-                        </button>
-                    </div>
-                </EditForm>
-            </div>
-        </div>
-    </div>
-        }
+    }
 </div>
 
 @code {
@@ -156,10 +244,16 @@
 
     protected override async Task OnInitializedAsync()
     {
+        var auth = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (auth.User?.Identity?.IsAuthenticated != true)
+        {
+            Nav.NavigateTo($"/Account/Login?returnUrl=/apply/{PetId}", true);
+            return;
+        }
+
         Pet = await Db.Pet.FirstOrDefaultAsync(p => p.Id == PetId);
         if (Pet == null) return;
 
-        // Simple, safe “nice image” mapping without errors
         PetImageUrl = PetId switch
         {
             1 => "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=1400&q=80",
@@ -177,32 +271,33 @@
         try
         {
             var auth = await AuthStateProvider.GetAuthenticationStateAsync();
-            var user = auth.User;
+            var principal = auth.User;
 
-            if (user?.Identity?.IsAuthenticated != true)
+            if (principal?.Identity?.IsAuthenticated != true)
             {
-                Nav.NavigateTo($"/account/login?returnUrl=/apply/{PetId}");
+                Nav.NavigateTo($"/Account/Login?returnUrl=/apply/{PetId}", true);
                 return;
             }
 
-            // If you already have working submit logic, keep it and just keep the UI.
-            // Below is a typical insert pattern; adjust fields to your AdoptionApplication entity.
-
-            var appUser = await UserManager.GetUserAsync(user);
+            var appUser = await UserManager.GetUserAsync(principal);
             if (appUser == null) { Error = "Unable to load user."; return; }
-
-            var adopterId = appUser.Id;
 
             var application = new AdoptionApplication
             {
                 PetId = PetId,
-                AdopterId = adopterId,
+                AdopterId = appUser.Id,
                 ApplicationDate = DateTime.Now,
                 Status = "Pending",
-                Remarks = $"{Form.FullName} | {Form.PhoneNumber} | {Form.Address} | Reason: {Form.Reason} | Exp: {Form.Experience}"
+
+                FullName = Form.FullName,
+                PhoneNumber = Form.PhoneNumber,
+                Address = Form.Address,
+                Reason = Form.Reason,
+                Experience = Form.Experience
             };
 
-            Db.AdoptionApplication.Add(application);
+
+            Db.AdoptionApplication.Add(application); // if your DbSet is singular; if plural, change accordingly
             await Db.SaveChangesAsync();
 
             Success = true;
@@ -219,10 +314,20 @@
 
     private class ApplyFormModel
     {
-        public string FullName { get; set; } = "";
-        public string PhoneNumber { get; set; } = "";
-        public string Address { get; set; } = "";
-        public string Reason { get; set; } = "";
-        public string Experience { get; set; } = "";
+        [Required] public string FullName { get; set; } = "";
+        [Required] public string PhoneNumber { get; set; } = "";
+        [Required] public string Address { get; set; } = "";
+
+        [Required] public string HousingType { get; set; } = "";
+        [Required] public string HasApproval { get; set; } = "";
+        [Required] public string HasAllergies { get; set; } = "";
+        [Range(0, 24)] public int HoursAlone { get; set; }
+
+        [Required] public string CurrentlyHasPets { get; set; } = "";
+        [Required] public string Experience { get; set; } = "";
+
+        [Required] public string Reason { get; set; } = "";
+        [Required] public string PrimaryCaregiver { get; set; } = "";
+        [Required] public string VetCareReady { get; set; } = "";
     }
-} 
+}

@@ -1,1 +1,227 @@
-﻿
+﻿@page "/my-applications"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@rendermode InteractiveServer
+@layout PawPal.Components.Layout.PublicLayout
+
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using PawPal.Data
+@using PawPal.Domain
+
+@inject PawPalContext Db
+@inject AuthenticationStateProvider AuthStateProvider
+@inject UserManager<PawPalUser> UserManager
+
+<PageTitle>My Applications</PageTitle>
+
+<div class="container-xl py-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+        <div>
+            <h1 class="mb-1" style="font-weight:800;">My Applications</h1>
+            <div class="text-muted">Track your adoption applications and their status.</div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-3">
+        <div class="card-body">
+            <div class="row g-2 align-items-end">
+                <div class="col-12 col-md-3">
+                    <label class="form-label small text-muted">Status</label>
+                    <select class="form-select"
+                            value="@StatusFilter"
+                            @onchange="OnStatusChanged">
+                        <option value="All">All</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Rejected">Rejected</option>
+                    </select>
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label class="form-label small text-muted">Search</label>
+                    <input class="form-control"
+                           placeholder="Search by pet name..."
+                           value="@SearchTerm"
+                           @oninput="OnSearchTyping" />
+                </div>
+
+                <div class="col-12 col-md-3 d-flex gap-2">
+                    <button class="btn btn-success w-100" @onclick="LoadAsync">
+                        Search
+                    </button>
+                    <button class="btn btn-outline-secondary w-100" @onclick="ClearFilters">
+                        Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (Loading)
+    {
+        <div class="text-muted">Loading...</div>
+    }
+    else if (Rows.Count == 0)
+    {
+        <div class="alert alert-info">No applications found.</div>
+    }
+    else
+    {
+        <div class="card shadow-sm border-0">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Pet</th>
+                            <th>Submitted</th>
+                            <th>Status</th>
+                            <th style="min-width:260px;">Notes</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var r in Rows)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <img src="@GetPetImage(r.PetId)"
+                                             class="rounded"
+                                             style="width:48px;height:48px;object-fit:cover;" />
+                                        <span class="fw-semibold">@r.PetName</span>
+                                    </div>
+                                </td>
+                                <td class="text-muted">@r.ApplicationDate.ToString("dd MMM yyyy, h:mm tt")</td>
+                                <td>
+                                    <span class="badge @StatusBadgeClass(r.Status)">@r.Status</span>
+                                </td>
+                                <td class="text-muted">
+                                    <!-- leave notes blank -->
+                                </td>
+                                <td class="text-end">
+                                    <a class="btn btn-sm btn-outline-success"
+                                       href="@($"/my-applications/{r.ApplicationId}")">
+                                        View Application
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool Loading = true;
+
+    private string StatusFilter = "All";
+    private string SearchTerm = "";
+
+    private List<RowVm> Rows = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task OnStatusChanged(ChangeEventArgs e)
+    {
+        StatusFilter = e.Value?.ToString() ?? "All";
+        await LoadAsync();
+    }
+
+    private void OnSearchTyping(ChangeEventArgs e)
+    {
+        SearchTerm = e.Value?.ToString() ?? "";
+        // Optional: don’t auto-search on every keystroke (keeps it fast)
+    }
+
+    private async Task ClearFilters()
+    {
+        StatusFilter = "All";
+        SearchTerm = "";
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        Loading = true;
+        Rows.Clear();
+
+        var auth = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = await UserManager.GetUserAsync(auth.User);
+        if (user == null)
+        {
+            Loading = false;
+            return;
+        }
+
+        var userId = user.Id;
+
+        // Build query first, filter before executing ToListAsync()
+        var q = Db.AdoptionApplication.AsNoTracking()
+            .Where(a => a.AdopterId == userId)
+            .Join(Db.Pet.AsNoTracking(),
+                  a => a.PetId,
+                  p => p.Id,
+                  (a, p) => new RowVm
+                  {
+                      ApplicationId = a.Id,
+                      PetId = p.Id,
+                      PetName = p.Name,
+                      ApplicationDate = a.ApplicationDate,
+                      Status = a.Status,
+                      Remarks = a.Remarks ?? ""
+                  });
+
+        if (StatusFilter != "All")
+        {
+            q = q.Where(x => x.Status == StatusFilter);
+        }
+
+        if (!string.IsNullOrWhiteSpace(SearchTerm))
+        {
+            var term = SearchTerm.Trim();
+            q = q.Where(x => x.PetName.Contains(term));
+        }
+
+        Rows = await q
+            .OrderByDescending(x => x.ApplicationDate)
+            .ToListAsync();
+
+        Loading = false;
+    }
+
+    private string StatusBadgeClass(string? status) => (status ?? "").ToLower() switch
+    {
+        "pending" => "bg-warning text-dark",
+        "approved" => "bg-success",
+        "rejected" => "bg-danger",
+        _ => "bg-secondary"
+    };
+
+    private string GetPetImage(int petId) => petId switch
+    {
+        1 => "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=300&q=80",
+        2 => "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=300&q=80",
+        _ => "https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=300&q=80"
+    };
+
+    private string Truncate(string? s, int max)
+    {
+        s ??= "";
+        return s.Length <= max ? s : s.Substring(0, max) + "…";
+    }
+
+    private class RowVm
+    {
+        public int ApplicationId { get; set; }
+        public int PetId { get; set; }
+        public string PetName { get; set; } = "";
+        public DateTime ApplicationDate { get; set; }
+        public string Status { get; set; } = "";
+        public string Remarks { get; set; } = "";
+    }
+}
