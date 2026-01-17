@@ -1,8 +1,15 @@
 ﻿@page "/Account/Logout"
+@rendermode InteractiveServer
+
 @using Microsoft.AspNetCore.Identity
 @using PawPal.Data
+
 @inject SignInManager<PawPalUser> SignInManager
 @inject NavigationManager Nav
+
+<PageTitle>Logout</PageTitle>
+
+<p class="text-muted p-4">Signing you out...</p>
 
 @code {
     protected override async Task OnInitializedAsync()

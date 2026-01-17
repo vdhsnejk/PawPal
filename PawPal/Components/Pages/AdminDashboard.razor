@@ -1,0 +1,190 @@
+﻿@page "/admin"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Administrator")]
+@rendermode InteractiveServer
+@layout PawPal.Components.Layout.PublicLayout
+
+@using Microsoft.EntityFrameworkCore
+@using PawPal.Data
+
+@inject PawPalContext Db
+
+<PageTitle>Admin Dashboard</PageTitle>
+
+<div class="container-xl py-4">
+    <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-3">
+        <div>
+            <div class="text-muted small">PAWPAL • ADMIN</div>
+            <h1 class="mb-1" style="font-weight:800;">Welcome, Nicole!</h1>
+            <div class="text-muted">Overview of adoption activity.</div>
+        </div>
+        <div class="d-flex gap-2">
+            <a class="btn btn-success" href="/admin/applications">
+                <i class="bi bi-clipboard-check me-2"></i> Review Applications
+            </a>
+            <a class="btn btn-outline-secondary" href="/pets">
+                <i class="bi bi-search me-2"></i> Browse Pets
+            </a>
+        </div>
+    </div>
+
+    @if (Loading)
+    {
+        <div class="text-muted">Loading...</div>
+    }
+    else
+    {
+        <div class="row g-3 mb-3">
+            <div class="col-12 col-md-4">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="text-muted small">Pending</div>
+                                <div class="display-6 fw-bold mb-0">@PendingCount</div>
+                            </div>
+                            <div class="rounded-circle d-flex align-items-center justify-content-center"
+                                 style="width:46px;height:46px;background:#fff3cd;">
+                                <i class="bi bi-hourglass-split text-warning"></i>
+                            </div>
+                        </div>
+                        <div class="text-muted small mt-2">Needs review.</div>
+                    </div>
+                    <div class="card-footer bg-transparent border-0 pt-0">
+                        <a class="text-decoration-none" href="/admin/applications">
+                            View pending <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-4">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="text-muted small">Approved</div>
+                                <div class="display-6 fw-bold mb-0">@ApprovedCount</div>
+                            </div>
+                            <div class="rounded-circle d-flex align-items-center justify-content-center"
+                                 style="width:46px;height:46px;background:#d1e7dd;">
+                                <i class="bi bi-check2-circle text-success"></i>
+                            </div>
+                        </div>
+                        <div class="text-muted small mt-2">Completed approvals.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-4">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="text-muted small">Rejected</div>
+                                <div class="display-6 fw-bold mb-0">@RejectedCount</div>
+                            </div>
+                            <div class="rounded-circle d-flex align-items-center justify-content-center"
+                                 style="width:46px;height:46px;background:#f8d7da;">
+                                <i class="bi bi-x-circle text-danger"></i>
+                            </div>
+                        </div>
+                        <div class="text-muted small mt-2">Rejected applications.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div>
+                        <h5 class="mb-1" style="font-weight:800;">Recent Applications</h5>
+                        <div class="text-muted small">Latest submissions (top 8).</div>
+                    </div>
+                    <a class="btn btn-sm btn-outline-success" href="/admin/applications">View all</a>
+                </div>
+
+                <div class="table-responsive mt-3">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Pet</th>
+                                <th>Submitted</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Recent.Count == 0)
+                            {
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted py-4">No applications yet.</td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var r in Recent)
+                                {
+                                    <tr>
+                                        <td class="fw-semibold">@r.PetName</td>
+                                        <td class="text-muted">@r.ApplicationDate.ToString("dd MMM yyyy, h:mm tt")</td>
+                                        <td><span class="badge @StatusBadgeClass(r.Status)">@r.Status</span></td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool Loading = true;
+
+    private int PendingCount;
+    private int ApprovedCount;
+    private int RejectedCount;
+
+    private List<RecentVm> Recent = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Loading = true;
+
+        PendingCount = await Db.AdoptionApplication.CountAsync(a => a.Status == "Pending");
+        ApprovedCount = await Db.AdoptionApplication.CountAsync(a => a.Status == "Approved");
+        RejectedCount = await Db.AdoptionApplication.CountAsync(a => a.Status == "Rejected");
+
+        Recent = await Db.AdoptionApplication.AsNoTracking()
+            .OrderByDescending(a => a.ApplicationDate)
+            .Join(Db.Pet.AsNoTracking(),
+                a => a.PetId,
+                p => p.Id,
+                (a, p) => new RecentVm
+                {
+                    PetName = p.Name,
+                    ApplicationDate = a.ApplicationDate,
+                    Status = a.Status
+                })
+            .Take(8)
+            .ToListAsync();
+
+        Loading = false;
+    }
+
+    private string StatusBadgeClass(string? status) => (status ?? "").ToLower() switch
+    {
+        "pending" => "bg-warning text-dark",
+        "approved" => "bg-success",
+        "rejected" => "bg-danger",
+        _ => "bg-secondary"
+    };
+
+    private class RecentVm
+    {
+        public string PetName { get; set; } = "";
+        public DateTime ApplicationDate { get; set; }
+        public string Status { get; set; } = "";
+    }
+}

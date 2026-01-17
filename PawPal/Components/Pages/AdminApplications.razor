@@ -1,4 +1,4 @@
-@* @page "/admin/applications"
+@page "/admin/applications"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Administrator")]
 @rendermode InteractiveServer
 @layout PawPal.Components.Layout.PublicLayout
@@ -9,15 +9,19 @@
 @using PawPal.Domain
 
 @inject PawPalContext Db
+@inject UserManager<PawPalUser> UserManager
 
-<PageTitle>Admin - Applications</PageTitle>
+<PageTitle>Applications</PageTitle>
 
 <div class="container-xl py-4">
     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
         <div>
-            <h1 class="mb-1" style="font-weight:800;">Admin: Adoption Applications</h1>
-            <div class="text-muted">Review and update adoption applications.</div>
+            <h1 class="mb-1" style="font-weight:800;">Applications</h1>
+            <div class="text-muted">Review, approve, or reject adoption requests.</div>
         </div>
+        <a class="btn btn-outline-secondary" href="/admin">
+            <i class="bi bi-arrow-left me-2"></i> Back to Dashboard
+        </a>
     </div>
 
     <div class="card shadow-sm border-0 mb-3">
@@ -36,14 +40,18 @@
                 <div class="col-12 col-md-6">
                     <label class="form-label small text-muted">Search</label>
                     <input class="form-control"
-                           placeholder="Search by pet name or applicant..."
+                           placeholder="Search by pet name or applicant email..."
                            value="@SearchTerm"
                            @oninput="OnSearchTyping" />
                 </div>
 
                 <div class="col-12 col-md-3 d-flex gap-2">
-                    <button class="btn btn-success w-100" @onclick="LoadAsync">Search</button>
-                    <button class="btn btn-outline-secondary w-100" @onclick="ClearFilters">Clear</button>
+                    <button class="btn btn-success w-100" @onclick="LoadAsync">
+                        Search
+                    </button>
+                    <button class="btn btn-outline-secondary w-100" @onclick="ClearFilters">
+                        Clear
+                    </button>
                 </div>
             </div>
         </div>
@@ -65,9 +73,9 @@
                     <thead class="table-light">
                         <tr>
                             <th>Pet</th>
+                            <th>Applicant</th>
                             <th>Submitted</th>
                             <th>Status</th>
-                            <th style="min-width:320px;">Admin Remarks</th>
                             <th class="text-end">Action</th>
                         </tr>
                     </thead>
@@ -76,13 +84,16 @@
                         {
                             <tr>
                                 <td class="fw-semibold">@r.PetName</td>
+                                <td class="text-muted">@r.ApplicantEmail</td>
                                 <td class="text-muted">@r.ApplicationDate.ToString("dd MMM yyyy, h:mm tt")</td>
-                                <td><span class="badge @StatusBadgeClass(r.Status)">@r.Status</span></td>
-                                <td class="text-muted">@r.AdminRemarks</td>
+                                <td>
+                                    <span class="badge @StatusBadgeClass(r.Status)">@r.Status</span>
+                                </td>
                                 <td class="text-end">
-                                    <button class="btn btn-sm btn-outline-success" @onclick="() => OpenReview(r.ApplicationId)">
+                                    <a class="btn btn-sm btn-outline-success"
+                                       href="@($"/admin/applications/{r.ApplicationId}")">
                                         Review
-                                    </button>
+                                    </a>
                                 </td>
                             </tr>
                         }
@@ -93,117 +104,17 @@
     }
 </div>
 
-@if (ShowModal)
-{
-    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5);">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold">Review Application</h5>
-                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
-                </div>
-                <div class="modal-body">
-                    @if (Selected == null)
-                    {
-                        <div class="text-muted">Loading...</div>
-                    }
-                    else
-                    {
-                        <div class="row g-3">
-                            <div class="col-12 col-lg-5">
-                                <div class="card border-0 bg-light">
-                                    <div class="card-body">
-                                        <div class="fw-semibold mb-1">Pet</div>
-                                        <div class="fs-5 fw-bold">@Selected.PetName</div>
-                                        <div class="text-muted small">Submitted @Selected.ApplicationDate.ToString("dd MMM yyyy, h:mm tt")</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-12 col-lg-7">
-                                <div class="mb-3">
-                                    <label class="form-label fw-semibold">Status</label>
-                                    <select class="form-select" @bind="EditStatus">
-                                        <option value="Pending">Pending</option>
-                                        <option value="Approved">Approved</option>
-                                        <option value="Rejected">Rejected</option>
-                                    </select>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label class="form-label fw-semibold">Admin Remarks</label>
-                                    <textarea class="form-control" rows="5" @bind="EditRemarks"></textarea>
-                                </div>
-
-                                <div class="d-flex justify-content-end gap-2">
-                                    <button class="btn btn-outline-secondary" @onclick="CloseModal">Cancel</button>
-                                    <button class="btn btn-success" @onclick="SaveAsync" disabled="@Saving">
-                                        @(Saving ? "Saving..." : "Save")
-                                    </button>
-                                </div>
-
-                                @if (!string.IsNullOrWhiteSpace(SaveError))
-                                {
-                                    <div class="alert alert-danger mt-3">@SaveError</div>
-                                }
-                            </div>
-                        </div>
-                    }
-                </div>
-            </div>
-        </div>
-    </div>
-}
-
 @code {
     private bool Loading = true;
+
     private string StatusFilter = "All";
     private string SearchTerm = "";
+
     private List<RowVm> Rows = new();
-
-    private bool ShowModal;
-    private bool Saving;
-    private string? SaveError;
-
-    private RowVm? Selected;
-    private int SelectedId;
-    private string EditStatus = "Pending";
-    private string EditRemarks = "";
 
     protected override async Task OnInitializedAsync()
     {
         await LoadAsync();
-    }
-
-    private async Task LoadAsync()
-    {
-        Loading = true;
-        Rows.Clear();
-
-        var q = Db.AdoptionApplication.AsNoTracking()
-            .Join(Db.Pet.AsNoTracking(),
-                a => a.PetId,
-                p => p.Id,
-                (a, p) => new RowVm
-                {
-                    ApplicationId = a.Id,
-                    PetName = p.Name,
-                    ApplicationDate = a.ApplicationDate,
-                    Status = a.Status,
-                    AdminRemarks = a.AdminRemarks ?? ""
-                });
-
-        if (StatusFilter != "All")
-            q = q.Where(x => x.Status == StatusFilter);
-
-        if (!string.IsNullOrWhiteSpace(SearchTerm))
-        {
-            var term = SearchTerm.Trim();
-            q = q.Where(x => x.PetName.Contains(term) || x.AdminRemarks.Contains(term));
-        }
-
-        Rows = await q.OrderByDescending(x => x.ApplicationDate).ToListAsync();
-        Loading = false;
     }
 
     private async Task OnStatusChanged(ChangeEventArgs e)
@@ -224,69 +135,61 @@
         await LoadAsync();
     }
 
-    private async Task OpenReview(int id)
+    private async Task LoadAsync()
     {
-        ShowModal = true;
-        SaveError = null;
-        Saving = false;
-        Selected = null;
+        Loading = true;
+        Rows.Clear();
 
-        SelectedId = id;
-
-        var row = await Db.AdoptionApplication.AsNoTracking()
+        // Pull apps + pet name first
+        var q = Db.AdoptionApplication.AsNoTracking()
             .Join(Db.Pet.AsNoTracking(),
-                a => a.PetId,
-                p => p.Id,
-                (a, p) => new RowVm
-                {
-                    ApplicationId = a.Id,
-                    PetName = p.Name,
-                    ApplicationDate = a.ApplicationDate,
-                    Status = a.Status,
-                    AdminRemarks = a.AdminRemarks ?? ""
-                })
-            .FirstOrDefaultAsync(x => x.ApplicationId == id);
+                  a => a.PetId,
+                  p => p.Id,
+                  (a, p) => new
+                  {
+                      a.Id,
+                      a.AdopterId,
+                      a.ApplicationDate,
+                      a.Status,
+                      PetName = p.Name
+                  });
 
-        Selected = row;
+        if (StatusFilter != "All")
+            q = q.Where(x => x.Status == StatusFilter);
 
-        EditStatus = row?.Status ?? "Pending";
-        EditRemarks = row?.AdminRemarks ?? "";
-    }
+        var list = await q
+            .OrderByDescending(x => x.ApplicationDate)
+            .ToListAsync();
 
-    private void CloseModal()
-    {
-        ShowModal = false;
-        Selected = null;
-        SaveError = null;
-    }
+        // Map adopterId -> email in one go
+        var adopterIds = list.Select(x => x.AdopterId).Distinct().ToList();
+        var users = await UserManager.Users
+            .Where(u => adopterIds.Contains(u.Id))
+            .Select(u => new { u.Id, u.Email })
+            .ToListAsync();
 
-    private async Task SaveAsync()
-    {
-        SaveError = null;
-        Saving = true;
+        var emailMap = users.ToDictionary(x => x.Id, x => x.Email ?? "(no email)");
 
-        try
+        // Apply search after we have emails
+        IEnumerable<RowVm> rows = list.Select(x => new RowVm
         {
-            var entity = await Db.AdoptionApplication.FirstOrDefaultAsync(a => a.Id == SelectedId);
-            if (entity == null) { SaveError = "Application not found."; return; }
+            ApplicationId = x.Id,
+            PetName = x.PetName,
+            ApplicantEmail = emailMap.TryGetValue(x.AdopterId, out var em) ? em : "(unknown)",
+            ApplicationDate = x.ApplicationDate,
+            Status = x.Status
+        });
 
-            entity.Status = EditStatus;
-            entity.AdminRemarks = EditRemarks;
-            entity.ReviewedDateTime = DateTime.Now;
-
-            await Db.SaveChangesAsync();
-
-            await LoadAsync();
-            CloseModal();
-        }
-        catch (Exception ex)
+        if (!string.IsNullOrWhiteSpace(SearchTerm))
         {
-            SaveError = ex.Message;
+            var term = SearchTerm.Trim();
+            rows = rows.Where(r =>
+                r.PetName.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                r.ApplicantEmail.Contains(term, StringComparison.OrdinalIgnoreCase));
         }
-        finally
-        {
-            Saving = false;
-        }
+
+        Rows = rows.ToList();
+        Loading = false;
     }
 
     private string StatusBadgeClass(string? status) => (status ?? "").ToLower() switch
@@ -301,8 +204,8 @@
     {
         public int ApplicationId { get; set; }
         public string PetName { get; set; } = "";
+        public string ApplicantEmail { get; set; } = "";
         public DateTime ApplicationDate { get; set; }
         public string Status { get; set; } = "";
-        public string AdminRemarks { get; set; } = "";
     }
-} *@
+}

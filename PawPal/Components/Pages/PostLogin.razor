@@ -1,0 +1,29 @@
+﻿@page "/post-login"
+@rendermode InteractiveServer
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider Auth
+
+<p class="text-muted p-4">Redirecting...</p>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await Auth.GetAuthenticationStateAsync();
+        var user = state.User;
+
+        if (user.Identity?.IsAuthenticated != true)
+        {
+            Nav.NavigateTo("/Account/Login", true);
+            return;
+        }
+
+        if (user.IsInRole("Administrator"))
+        {
+            Nav.NavigateTo("/admin", true);
+        }
+        else
+        {
+            Nav.NavigateTo("/my-applications", true);
+        }
+    }
+}

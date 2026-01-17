@@ -5,6 +5,7 @@ using PawPal.Data;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using PawPal.Components.Account;
+using PawPal.Configurations.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContextFactory<PawPalContext>(options =>
@@ -34,6 +35,7 @@ builder.Services.AddAuthentication(options =>
     .AddIdentityCookies();
 
 builder.Services.AddIdentityCore<PawPalUser>(options => options.SignIn.RequireConfirmedAccount = true)
+    .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<PawPalContext>()
     .AddSignInManager()
     .AddDefaultTokenProviders();
@@ -61,25 +63,6 @@ app.MapRazorComponents<App>()
 
 app.MapAdditionalIdentityEndpoints();;
 
-//using (var scope = app.Services.CreateScope())
-//{
-//    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-//    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<PawPalUser>>();
-
-//    if (!await roleManager.RoleExistsAsync("Administrator"))
-//        await roleManager.CreateAsync(new IdentityRole("Administrator"));
-
-//    var adminEmail = "admin@pawpal.sg";
-//    var admin = await userManager.FindByEmailAsync(adminEmail);
-//    if (admin == null)
-//    {
-//        admin = new PawPalUser { UserName = adminEmail, Email = adminEmail, EmailConfirmed = true };
-//        await userManager.CreateAsync(admin, "Admin123!");
-//    }
-
-//    if (!await userManager.IsInRoleAsync(admin, "Administrator"))
-//        await userManager.AddToRoleAsync(admin, "Administrator");
-//}
-
+await IdentitySeed.SeedAsync(app.Services);
 
 app.Run();

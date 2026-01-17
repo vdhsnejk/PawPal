@@ -9,6 +9,8 @@
 @inject ILogger<Login> Logger
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
+@inject AuthenticationStateProvider AuthStateProvider
+
 
 <PageTitle>Sign In</PageTitle>
 
@@ -80,7 +82,7 @@
         if (result.Succeeded)
         {
             Logger.LogInformation("User logged in.");
-            RedirectManager.RedirectTo(ReturnUrl);
+            RedirectManager.RedirectTo("/post-login");
         }
         else if (result.RequiresTwoFactor)
         {
