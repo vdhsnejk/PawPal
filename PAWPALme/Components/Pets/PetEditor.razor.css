@@ -1,0 +1,38 @@
+﻿/* Upload Area */
+.image-upload-area {
+    background-color: #f8f9fa;
+    border: 2px dashed #dee2e6;
+    border-radius: 0.5rem;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    height: 300px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+    .image-upload-area:hover {
+        border-color: #0d6efd;
+        background-color: #f1f3f5;
+    }
+
+.preview-img {
+    max-width: 100%;
+    max-height: 250px;
+    object-fit: contain;
+    border-radius: 0.25rem;
+    margin-bottom: 1rem;
+}
+
+.upload-overlay {
+    color: #6c757d;
+}
+
+.form-card {
+    border: none;
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.1);
+}

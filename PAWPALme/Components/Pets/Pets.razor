@@ -1,129 +1,125 @@
 ﻿@page "/pets"
 @using PAWPALme.Models
 @using PAWPALme.Repositories
+@using PAWPALme.Enums
 @inject IPetRepository PetRepo
-@inject NavigationManager Nav
 
-<PageTitle>Find Your Perfect Companion</PageTitle>
+<PageTitle>Adopt a Pet</PageTitle>
 
-<div class="container-fluid mt-4">
-    <div class="row">
-        <div class="col-md-3">
-            <div class="card p-3 shadow-sm">
-                <h5 class="mb-3">Filters</h5>
+<div class="container mt-4">
+    <div class="page-container">
 
-                <div class="mb-3">
-                    <label class="form-label">Search</label>
-                    <input type="text" class="form-control" placeholder="Search name..."
-                           @bind="searchTerm" @bind:event="oninput" @onkeyup="LoadPets" />
-                </div>
+        <aside class="filters-sidebar shadow-sm">
+            <h5 class="mb-3"><i class="bi bi-funnel-fill"></i> Filters</h5>
 
-                <div class="mb-3">
-                    <label class="form-label">Species</label>
-                    <select class="form-select" @bind="selectedSpecies" @onclick="LoadPets">
-                        <option value="All">All Species</option>
-                        <option value="Dog">Dog</option>
-                        <option value="Cat">Cat</option>
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Breed</label>
-                    <select class="form-select" @bind="selectedBreed" @onclick="LoadPets">
-                        <option value="All">All Breeds</option>
-                        @foreach (var breed in breeds)
-                        {
-                            <option value="@breed">@breed</option>
-                        }
-                    </select>
-                </div>
-
-                <button class="btn btn-outline-secondary w-100" @onclick="ResetFilters">Reset Filters</button>
+            <div class="filter-group">
+                <label class="filter-label">Search Name</label>
+                <input type="text" class="form-control" @bind="searchTerm" @bind:event="oninput" placeholder="e.g. Luna" />
             </div>
-        </div>
 
-        <div class="col-md-9">
-            <h2 class="text-success mb-3">Find Your Perfect Pet</h2>
-            
-            @if (pets == null)
+            <div class="filter-group">
+                <label class="filter-label">Species</label>
+                <select class="form-select" @bind="selectedSpecies">
+                    <option value="">All Species</option>
+                    <option value="Dog">Dog</option>
+                    <option value="Cat">Cat</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Size</label>
+                <select class="form-select" @bind="selectedSize">
+                    <option value="">Any Size</option>
+                    <option value="Small">Small</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Large">Large</option>
+                </select>
+            </div>
+
+            <button class="btn btn-outline-secondary w-100 btn-sm" @onclick="ClearFilters">
+                Reset Filters
+            </button>
+        </aside>
+
+        <main class="pet-grid">
+            <div class="mb-4">
+                <h2 class="fw-bold text-primary">Find Your Best Friend</h2>
+                <p class="text-muted">Browse our lovely pets waiting for a forever home.</p>
+            </div>
+
+            @if (filteredPets == null)
             {
-                <p>Loading...</p>
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary"></div>
+                </div>
+            }
+            else if (!filteredPets.Any())
+            {
+                <div class="alert alert-info text-center">
+                    No pets match your current filters. Try clearing them!
+                </div>
             }
             else
             {
-                <p>Showing @pets.Count() pets</p>
-                
-                if (!pets.Any())
-                {
-                    <div class="alert alert-info">No pets found matching your criteria.</div>
-                }
-                else
-                {
-                    <div class="row row-cols-1 row-cols-md-3 g-4">
-                        @foreach (var pet in pets)
-                        {
-                            <div class="col">
-                                <div class="card h-100 shadow-sm border-0">
-                                    <div style="height: 200px; background-color: #eee; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-                                        @if (!string.IsNullOrEmpty(pet.ImageUrl))
-                                        {
-                                            <img src="@pet.ImageUrl" class="card-img-top" style="height: 100%; width: 100%; object-fit: cover;" alt="@pet.Name">
-                                        }
-                                        else
-                                        {
-                                            <span class="text-muted">No Image</span>
-                                        }
-                                    </div>
-
-                                    <div class="card-body">
-                                        <h5 class="card-title fw-bold">@pet.Name</h5>
-                                        <p class="card-text text-muted">@pet.Breed • @pet.Age years old</p>
-                                        <span class="badge bg-success mb-2">@pet.Species</span>
-                                        <p class="card-text small text-truncate">@pet.Description</p>
-                                    </div>
-
-                                    <div class="card-footer bg-white border-0 d-flex gap-2">
-                                        <a href="/book-appointment/@pet.Id" class="btn btn-outline-primary w-100">Meet Me</a>
+                <div class="row g-4">
+                    @foreach (var pet in filteredPets)
+                    {
+                        <div class="col-md-6 col-lg-4">
+                            <div class="card shadow-sm pet-card">
+                                <div class="card-img-wrapper">
+                                    @if (!string.IsNullOrEmpty(pet.ImageUrl))
+                                    {
+                                        <img src="@pet.ImageUrl" class="pet-img" alt="@pet.Name" />
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-camera fs-1 text-muted"></i>
+                                    }
+                                    <span class="badge bg-dark badge-overlay">@pet.Breed</span>
+                                </div>
+                                <div class="card-body">
+                                    <h5 class="card-title fw-bold">@pet.Name</h5>
+                                    <p class="card-text text-muted small mb-2">
+                                        @pet.Species • @pet.Age yrs • @pet.Gender
+                                    </p>
+                                    <div class="d-flex justify-content-between align-items-center mt-3">
+                                        <a href="pet/@pet.Id" class="btn btn-outline-primary btn-sm w-100">
+                                            View Profile
+                                        </a>
                                     </div>
                                 </div>
                             </div>
-                        }
-                    </div>
-                }
+                        </div>
+                    }
+                </div>
             }
-        </div>
+        </main>
     </div>
 </div>
 
 @code {
-    private IEnumerable<Pet>? pets;
-    private IEnumerable<string> breeds = new List<string>();
+    private IEnumerable<Pet>? allPets;
+
+    // Filter logic using Strings
+    private IEnumerable<Pet>? filteredPets => allPets?
+        .Where(p => p.Status == PetStatus.Available) // Only show available pets
+        .Where(p => string.IsNullOrEmpty(searchTerm) || p.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+        .Where(p => string.IsNullOrEmpty(selectedSpecies) || p.Species == selectedSpecies)
+        .Where(p => string.IsNullOrEmpty(selectedSize) || p.Size == selectedSize);
 
     private string searchTerm = "";
-    private string selectedSpecies = "All";
-    private string selectedBreed = "All";
+    private string selectedSpecies = "";
+    private string selectedSize = "";
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadBreeds();
-        await LoadPets();
+        allPets = await PetRepo.GetAllAsync();
     }
 
-    private async Task LoadPets()
-    {
-        pets = await PetRepo.SearchAsync(searchTerm, selectedSpecies, selectedBreed, null);
-    }
-
-    private async Task LoadBreeds()
-    {
-        breeds = await PetRepo.GetBreedsAsync();
-    }
-
-    private async Task ResetFilters()
+    private void ClearFilters()
     {
         searchTerm = "";
-        selectedSpecies = "All";
-        selectedBreed = "All";
-        await LoadPets();
+        selectedSpecies = "";
+        selectedSize = "";
     }
 }

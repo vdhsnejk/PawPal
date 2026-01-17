@@ -1,129 +1,210 @@
-﻿@page "/shelter/pets/edit/{Id:int?}"
+﻿@page "/shelter/pets/add"
+@page "/shelter/pets/edit/{Id:int}"
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Identity
 @using PAWPALme.Models
-@using PAWPALme.Data
 @using PAWPALme.Repositories
+@using PAWPALme.Services
 @using PAWPALme.Enums
+@using PAWPALme.Data
+@using Microsoft.AspNetCore.Identity
 @attribute [Authorize(Roles = "Shelter")]
 @inject IPetRepository PetRepo
-@inject UserManager<ApplicationUser> UserManager
+@inject IShelterRepository ShelterRepo
+@inject IFileService FileService
 @inject NavigationManager Nav
+@inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider AuthStateProvider
 
+<PageTitle>@(Id == null ? "Add New Pet" : "Edit Pet")</PageTitle>
+
 <div class="container mt-4">
-    <div class="card shadow-sm mx-auto" style="max-width: 800px;">
-        <div class="card-header bg-white d-flex align-items-center">
-            <a href="shelter/pets" class="btn btn-outline-secondary btn-sm me-3"><i class="bi bi-arrow-left"></i> Back</a>
-            <h3 class="mb-0">@(Id.HasValue ? "Edit Pet Profile" : "Add New Pet")</h3>
-        </div>
-        <div class="card-body">
-            @* FIX: Added FormName="pet-editor" to resolve the POST error *@
-            <EditForm Model="PetModel" OnValidSubmit="SavePet" FormName="pet-editor">
-                <DataAnnotationsValidator />
-                <ValidationSummary class="text-danger" />
-
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Name</label>
-                        <InputText @bind-Value="PetModel.Name" class="form-control" />
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Species</label>
-                        <InputSelect @bind-Value="PetModel.Species" class="form-select">
-                            <option value="Dog">Dog</option>
-                            <option value="Cat">Cat</option>
-                        </InputSelect>
-                    </div>
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card form-card">
+                <div class="card-header bg-white border-bottom-0 pt-4 px-4">
+                    <h3 class="fw-bold text-primary">@(Id == null ? "Add a New Pet" : $"Edit {PetModel.Name}")</h3>
                 </div>
 
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Breed</label>
-                        <InputText @bind-Value="PetModel.Breed" class="form-control" />
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <label class="form-label">Age</label>
-                        <InputNumber @bind-Value="PetModel.Age" class="form-control" />
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <label class="form-label">Gender</label>
-                        <InputSelect @bind-Value="PetModel.Gender" class="form-select">
-                            <option value="@PetGender.Male">Male</option>
-                            <option value="@PetGender.Female">Female</option>
-                        </InputSelect>
-                    </div>
-                </div>
+                <div class="card-body p-4">
+                    <EditForm Model="PetModel" OnValidSubmit="SavePet">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary class="text-danger mb-3" />
 
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Size</label>
-                        <InputSelect @bind-Value="PetModel.Size" class="form-select">
-                            <option value="Small">Small</option>
-                            <option value="Medium">Medium</option>
-                            <option value="Large">Large</option>
-                        </InputSelect>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Image URL</label>
-                        <InputText @bind-Value="PetModel.ImageUrl" class="form-control" placeholder="https://..." />
-                    </div>
-                </div>
+                        <div class="row">
+                            <div class="col-md-5 mb-4">
+                                <label class="form-label fw-bold">Pet Photo</label>
+                                <div class="image-upload-area">
+                                    @if (!string.IsNullOrEmpty(PetModel.ImageUrl))
+                                    {
+                                        <img src="@PetModel.ImageUrl" class="preview-img" />
+                                        <button type="button" class="btn btn-sm btn-outline-danger mt-2" @onclick="() => PetModel.ImageUrl = null">
+                                            Remove Photo
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <div class="upload-overlay">
+                                            <i class="bi bi-cloud-upload fs-1"></i>
+                                            <p class="mt-2">Click to upload photo</p>
+                                        </div>
+                                    }
 
-                <div class="mb-3">
-                    <label class="form-label">Description</label>
-                    <InputTextArea @bind-Value="PetModel.Description" class="form-control" rows="4" />
-                </div>
+                                    <InputFile OnChange="HandleFileSelected" class="position-absolute w-100 h-100 top-0 start-0 opacity-0" accept=".jpg,.png,.jpeg" />
+                                </div>
+                                @if (isUploading)
+                                {
+                                    <div class="progress mt-2" style="height: 5px;">
+                                        <div class="progress-bar progress-bar-striped progress-bar-animated w-100"></div>
+                                    </div>
+                                    <small class="text-muted">Uploading...</small>
+                                }
+                            </div>
 
-                <div class="d-grid">
-                    <button type="submit" class="btn btn-primary btn-lg">Save Pet Profile</button>
+                            <div class="col-md-7">
+                                <div class="mb-3">
+                                    <label class="form-label">Name</label>
+                                    <InputText @bind-Value="PetModel.Name" class="form-control" placeholder="Pet's Name" />
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-6 mb-3">
+                                        <label class="form-label">Species</label>
+                                        <InputSelect @bind-Value="PetModel.Species" class="form-select">
+                                            <option value="">-- Select --</option>
+                                            <option value="Dog">Dog</option>
+                                            <option value="Cat">Cat</option>
+                                        </InputSelect>
+                                    </div>
+                                    <div class="col-6 mb-3">
+                                        <label class="form-label">Breed</label>
+                                        <InputText @bind-Value="PetModel.Breed" class="form-control" placeholder="e.g. Golden Retriever" />
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-4 mb-3">
+                                        <label class="form-label">Age (Yrs)</label>
+                                        <InputNumber @bind-Value="PetModel.Age" class="form-control" />
+                                    </div>
+                                    <div class="col-4 mb-3">
+                                        <label class="form-label">Gender</label>
+                                        <InputSelect @bind-Value="PetModel.Gender" class="form-select">
+                                            <option value="@PetGender.Male">Male</option>
+                                            <option value="@PetGender.Female">Female</option>
+                                        </InputSelect>
+                                    </div>
+                                    <div class="col-4 mb-3">
+                                        <label class="form-label">Size</label>
+                                        <InputSelect @bind-Value="PetModel.Size" class="form-select">
+                                            <option value="Small">Small</option>
+                                            <option value="Medium">Medium</option>
+                                            <option value="Large">Large</option>
+                                        </InputSelect>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Description</label>
+                                    <InputTextArea @bind-Value="PetModel.Description" class="form-control" rows="5" placeholder="Tell us about their personality..." />
+                                </div>
+
+                                <div class="form-check mb-4">
+                                    <input type="checkbox" class="form-check-input" id="adoptedCheck"
+                                           checked="@(PetModel.Status == PetStatus.Adopted)"
+                                           @onchange="ToggleAdoptedStatus" />
+                                    <label class="form-check-label" for="adoptedCheck">
+                                        Mark as Adopted (Hidden from public listings)
+                                    </label>
+                                </div>
+
+                                <div class="d-flex justify-content-end gap-2">
+                                    <a href="/shelter/pets" class="btn btn-secondary">Cancel</a>
+                                    <button type="submit" class="btn btn-primary px-4">Save Pet</button>
+                                </div>
+                            </div>
+                        </div>
+                    </EditForm>
                 </div>
-            </EditForm>
+            </div>
         </div>
     </div>
 </div>
 
 @code {
     [Parameter] public int? Id { get; set; }
-
-    // FIX: Added [SupplyParameterFromForm] to handle binding correctly
-    [SupplyParameterFromForm]
-    private Pet PetModel { get; set; } = new() { Species = "Dog" };
-
-    private ApplicationUser? currentUser;
+    private Pet PetModel { get; set; } = new();
+    private bool isUploading = false;
+    private int? userShelterId;
 
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        currentUser = await UserManager.GetUserAsync(authState.User);
+        var user = await UserManager.GetUserAsync(authState.User);
+        userShelterId = user?.ShelterId;
 
-        // Load data only if we have an ID AND we haven't already bound a form submission
-        // (This check prevents overwriting user input if validation fails)
-        if (Id.HasValue && PetModel.Id == 0)
+        if (userShelterId == null)
         {
-            var existing = await PetRepo.GetByIdAsync(Id.Value);
-            // Ensure ownership
-            if (existing != null && existing.ShelterId == currentUser?.ShelterId)
+            Nav.NavigateTo("/shelter/register");
+            return;
+        }
+
+        if (Id.HasValue)
+        {
+            var existingPet = await PetRepo.GetByIdAsync(Id.Value);
+            if (existingPet != null)
             {
-                PetModel = existing;
+                if (existingPet.ShelterId != userShelterId)
+                {
+                    Nav.NavigateTo("/shelter/pets");
+                    return;
+                }
+                PetModel = existingPet;
             }
         }
+        else
+        {
+            // Default values
+            PetModel.Species = "Dog";
+            PetModel.Size = "Medium";
+            PetModel.Status = PetStatus.Available;
+        }
+    }
+
+    // Helper to handle the Checkbox -> Enum conversion
+    private void ToggleAdoptedStatus(ChangeEventArgs e)
+    {
+        bool isAdopted = (bool)(e.Value ?? false);
+        PetModel.Status = isAdopted ? PetStatus.Adopted : PetStatus.Available;
+    }
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        isUploading = true;
+        try
+        {
+            var path = await FileService.UploadFileAsync(e.File, "pets");
+            PetModel.ImageUrl = path;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Upload Error: {ex.Message}");
+        }
+        isUploading = false;
     }
 
     private async Task SavePet()
     {
-        if (currentUser?.ShelterId == null) return;
+        if (userShelterId == null) return;
 
-        // Ensure the shelter ID is set (security)
-        PetModel.ShelterId = currentUser.ShelterId.Value;
+        PetModel.ShelterId = userShelterId.Value;
 
-        if (Id.HasValue && PetModel.Id > 0)
+        if (PetModel.Id == 0)
         {
-            await PetRepo.UpdateAsync(PetModel);
+            await PetRepo.AddAsync(PetModel);
         }
         else
         {
-            await PetRepo.AddAsync(PetModel);
+            await PetRepo.UpdateAsync(PetModel);
         }
 
         Nav.NavigateTo("/shelter/pets");
