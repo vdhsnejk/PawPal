@@ -7,7 +7,6 @@
 
 <div class="container py-4">
 
-    <!-- Header (matches "old UI" vibe) -->
     <div class="page-header p-4 p-md-5 mb-4">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3">
             <div>
@@ -18,68 +17,69 @@
             </div>
 
             <div class="kpi-pill px-3 py-2 text-muted small">
-                Showing <span class="fw-semibold">@((Pets?.Count ?? 0))</span> available pets
+                Showing <span class="fw-semibold">@FilteredPets.Count</span> available pets
             </div>
         </div>
 
-        <!-- Filter bar (UI only for now; we'll wire logic after) -->
         <div class="filter-card bg-white shadow-sm mt-4 p-3">
             <div class="row g-3 align-items-end">
                 <div class="col-12 col-md-3">
                     <label class="form-label mb-1">Species</label>
-                    <select class="form-select" disabled>
-                        <option>All</option>
-                        <option>Dog</option>
-                        <option>Cat</option>
-                        <option>Other</option>
+                    <select class="form-select" @bind="SpeciesFilter">
+                        <option value="All">All</option>
+                        @foreach (var s in SpeciesOptions)
+                        {
+                            <option value="@s">@s</option>
+                        }
                     </select>
                 </div>
 
                 <div class="col-12 col-md-3">
                     <label class="form-label mb-1">Size</label>
-                    <select class="form-select" disabled>
-                        <option>All</option>
-                        <option>Small</option>
-                        <option>Medium</option>
-                        <option>Large</option>
+                    <select class="form-select" @bind="SizeFilter">
+                        <option value="All">All</option>
+                        @foreach (var s in SizeOptions)
+                        {
+                            <option value="@s">@s</option>
+                        }
                     </select>
                 </div>
 
                 <div class="col-12 col-md-4">
                     <label class="form-label mb-1">Search</label>
-                    <input class="form-control" placeholder="Name, breed, temperament..." disabled />
+                    <input class="form-control"
+                           placeholder="Name, breed, temperament..."
+                           @bind="SearchTerm"
+                           @bind:event="oninput" />
                 </div>
 
                 <div class="col-12 col-md-2 d-grid">
-                    <button class="btn btn-outline-secondary" disabled>Clear</button>
-                </div>
-
-                <div class="text-muted small mt-2">
-                    * Filters will be connected after UI is locked in.
+                    <button class="btn btn-outline-secondary" @onclick="ClearFilters">Clear</button>
                 </div>
             </div>
         </div>
     </div>
 
-    @if (Pets == null)
+    @if (Loading)
     {
         <div class="text-muted">Loading...</div>
     }
-    else if (Pets.Count == 0)
+    else if (FilteredPets.Count == 0)
     {
-        <div class="alert alert-info">No pets available right now.</div>
+        <div class="alert alert-info">No pets found for the selected filters.</div>
     }
     else
     {
         <div class="row g-4">
-            @foreach (var p in Pets)
+            @foreach (var p in FilteredPets)
             {
                 <div class="col-12 col-sm-6 col-lg-4">
                     <div class="card pet-card h-100 shadow-sm">
-                        <!-- Image -->
                         <img class="pet-img"
-                             src="@GetPetImageUrl(p.Id)"
-                             alt="Pet photo" />
+                             src="@GetPetImageUrl(p)"
+                             alt="Pet photo"
+                             onerror="this.onerror=null;this.src=this.dataset.fallback;"
+                             data-fallback="@GetFallbackBySpecies(p.Species)" />
 
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start gap-2">
@@ -101,8 +101,14 @@
                             </div>
 
                             <div class="mt-3 d-flex flex-wrap gap-2">
-                                <span class="tag-badge"><i class="bi bi-arrows-angle-expand me-1"></i>@p.Size</span>
-                                <span class="tag-badge"><i class="bi bi-gender-ambiguous me-1"></i>@p.Gender</span>
+                                @if (!string.IsNullOrWhiteSpace(p.Size))
+                                {
+                                    <span class="tag-badge"><i class="bi bi-arrows-angle-expand me-1"></i>@p.Size</span>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(p.Gender))
+                                {
+                                    <span class="tag-badge"><i class="bi bi-gender-ambiguous me-1"></i>@p.Gender</span>
+                                }
                                 @if (!string.IsNullOrWhiteSpace(p.Temperament))
                                 {
                                     <span class="tag-badge"><i class="bi bi-emoji-smile me-1"></i>@p.Temperament</span>
@@ -130,31 +136,126 @@
 </div>
 
 @code {
-    // Data store for pets from DB
-    private List<Pet>? Pets;
+    private bool Loading = true;
 
-    // Image lookup table: PetId -> ImageUrl
+    private List<Pet> Pets = new();
+    private List<Pet> FilteredPets = new();
+
+    private List<string> SpeciesOptions = new();
+    private List<string> SizeOptions = new();
+
+    private string SpeciesFilter = "All";
+    private string SizeFilter = "All";
+    private string SearchTerm = "";
+
     private Dictionary<int, string> PetIdToImageUrl = new();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        // 1) Load available pets from DB
-        Pets = Db.Pet
-            .Where(p => p.Status == "Available")
-            .ToList();
+        Loading = true;
 
-        // 2) Load one image per pet (first image)
-        PetIdToImageUrl = Db.PetImage
+        // Load pets
+        Pets = await Db.Pet
+            .AsNoTracking()
+            .Where(p => p.Status == "Available")
+            .OrderBy(p => p.Name)
+            .ToListAsync();
+
+        // Load one image per pet (first image)
+        PetIdToImageUrl = await Db.PetImage
+            .AsNoTracking()
             .GroupBy(i => i.PetId)
             .Select(g => g.OrderBy(i => i.Id).First())
-            .ToDictionary(x => x.PetId, x => x.ImageUrl);
+            .ToDictionaryAsync(x => x.PetId, x => x.ImageUrl);
+
+        // Build dropdown options from your real DB values
+        SpeciesOptions = Pets
+            .Select(p => (p.Species ?? "").Trim())
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(s => s)
+            .ToList();
+
+        SizeOptions = Pets
+            .Select(p => (p.Size ?? "").Trim())
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(s => s)
+            .ToList();
+
+        ApplyFilters();
+        Loading = false;
     }
 
-    // Helper: choose image, fallback if missing
-    private string GetPetImageUrl(int petId)
+    // Re-filter automatically when any bound filter changes
+    protected override void OnParametersSet()
     {
-        return PetIdToImageUrl.TryGetValue(petId, out var url) && !string.IsNullOrWhiteSpace(url)
-            ? url
-            : "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=1200&q=80";
+        ApplyFilters();
+    }
+
+    private void ApplyFilters()
+    {
+        IEnumerable<Pet> q = Pets;
+
+        if (SpeciesFilter != "All")
+        {
+            q = q.Where(p => ((p.Species ?? "").Trim())
+                .Contains(SpeciesFilter, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (SizeFilter != "All")
+        {
+            q = q.Where(p => ((p.Size ?? "").Trim())
+                .Contains(SizeFilter, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.IsNullOrWhiteSpace(SearchTerm))
+        {
+            var term = SearchTerm.Trim();
+            q = q.Where(p =>
+                (p.Name ?? "").Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                (p.Breed ?? "").Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                (p.Temperament ?? "").Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                (p.Description ?? "").Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                (p.Species ?? "").Contains(term, StringComparison.OrdinalIgnoreCase)
+            );
+        }
+
+        FilteredPets = q.ToList();
+    }
+
+    private void ClearFilters()
+    {
+        SpeciesFilter = "All";
+        SizeFilter = "All";
+        SearchTerm = "";
+        ApplyFilters();
+    }
+
+    private string GetPetImageUrl(Pet p)
+    {
+        if (PetIdToImageUrl.TryGetValue(p.Id, out var url))
+        {
+            url = (url ?? "").Trim();
+            if (url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                return url;
+            }
+        }
+        return GetFallbackBySpecies(p.Species);
+    }
+
+    private string GetFallbackBySpecies(string? species)
+    {
+        var s = (species ?? "").Trim().ToLower();
+
+        if (s.Contains("cat"))
+            return "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?auto=format&fit=crop&w=1200&q=80";
+
+        if (s.Contains("dog"))
+            return "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=1200&q=80";
+
+        return "https://images.unsplash.com/photo-1450778869180-41d0601e046e?auto=format&fit=crop&w=1200&q=80";
     }
 }
