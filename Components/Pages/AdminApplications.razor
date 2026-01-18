@@ -1,0 +1,211 @@
+@page "/admin/applications"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Administrator")]
+@rendermode InteractiveServer
+@layout PawPal.Components.Layout.PublicLayout
+
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using PawPal.Data
+@using PawPal.Domain
+
+@inject PawPalContext Db
+@inject UserManager<PawPalUser> UserManager
+
+<PageTitle>Applications</PageTitle>
+
+<div class="container-xl py-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+        <div>
+            <h1 class="mb-1" style="font-weight:800;">Applications</h1>
+            <div class="text-muted">Review, approve, or reject adoption requests.</div>
+        </div>
+        <a class="btn btn-outline-secondary" href="/admin">
+            <i class="bi bi-arrow-left me-2"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-3">
+        <div class="card-body">
+            <div class="row g-2 align-items-end">
+                <div class="col-12 col-md-3">
+                    <label class="form-label small text-muted">Status</label>
+                    <select class="form-select" value="@StatusFilter" @onchange="OnStatusChanged">
+                        <option value="All">All</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Rejected">Rejected</option>
+                    </select>
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label class="form-label small text-muted">Search</label>
+                    <input class="form-control"
+                           placeholder="Search by pet name or applicant email..."
+                           value="@SearchTerm"
+                           @oninput="OnSearchTyping" />
+                </div>
+
+                <div class="col-12 col-md-3 d-flex gap-2">
+                    <button class="btn btn-success w-100" @onclick="LoadAsync">
+                        Search
+                    </button>
+                    <button class="btn btn-outline-secondary w-100" @onclick="ClearFilters">
+                        Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (Loading)
+    {
+        <div class="text-muted">Loading...</div>
+    }
+    else if (Rows.Count == 0)
+    {
+        <div class="alert alert-info">No applications found.</div>
+    }
+    else
+    {
+        <div class="card shadow-sm border-0">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Pet</th>
+                            <th>Applicant</th>
+                            <th>Submitted</th>
+                            <th>Status</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var r in Rows)
+                        {
+                            <tr>
+                                <td class="fw-semibold">@r.PetName</td>
+                                <td class="text-muted">@r.ApplicantEmail</td>
+                                <td class="text-muted">@r.ApplicationDate.ToString("dd MMM yyyy, h:mm tt")</td>
+                                <td>
+                                    <span class="badge @StatusBadgeClass(r.Status)">@r.Status</span>
+                                </td>
+                                <td class="text-end">
+                                    <a class="btn btn-sm btn-outline-success"
+                                       href="@($"/admin/applications/{r.ApplicationId}")">
+                                        Review
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool Loading = true;
+
+    private string StatusFilter = "All";
+    private string SearchTerm = "";
+
+    private List<RowVm> Rows = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task OnStatusChanged(ChangeEventArgs e)
+    {
+        StatusFilter = e.Value?.ToString() ?? "All";
+        await LoadAsync();
+    }
+
+    private void OnSearchTyping(ChangeEventArgs e)
+    {
+        SearchTerm = e.Value?.ToString() ?? "";
+    }
+
+    private async Task ClearFilters()
+    {
+        StatusFilter = "All";
+        SearchTerm = "";
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        Loading = true;
+        Rows.Clear();
+
+        // Pull apps + pet name first
+        var q = Db.AdoptionApplication.AsNoTracking()
+            .Join(Db.Pet.AsNoTracking(),
+                  a => a.PetId,
+                  p => p.Id,
+                  (a, p) => new
+                  {
+                      a.Id,
+                      a.AdopterId,
+                      a.ApplicationDate,
+                      a.Status,
+                      PetName = p.Name
+                  });
+
+        if (StatusFilter != "All")
+            q = q.Where(x => x.Status == StatusFilter);
+
+        var list = await q
+            .OrderByDescending(x => x.ApplicationDate)
+            .ToListAsync();
+
+        // Map adopterId -> email in one go
+        var adopterIds = list.Select(x => x.AdopterId).Distinct().ToList();
+        var users = await UserManager.Users
+            .Where(u => adopterIds.Contains(u.Id))
+            .Select(u => new { u.Id, u.Email })
+            .ToListAsync();
+
+        var emailMap = users.ToDictionary(x => x.Id, x => x.Email ?? "(no email)");
+
+        // Apply search after we have emails
+        IEnumerable<RowVm> rows = list.Select(x => new RowVm
+        {
+            ApplicationId = x.Id,
+            PetName = x.PetName,
+            ApplicantEmail = emailMap.TryGetValue(x.AdopterId, out var em) ? em : "(unknown)",
+            ApplicationDate = x.ApplicationDate,
+            Status = x.Status
+        });
+
+        if (!string.IsNullOrWhiteSpace(SearchTerm))
+        {
+            var term = SearchTerm.Trim();
+            rows = rows.Where(r =>
+                r.PetName.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                r.ApplicantEmail.Contains(term, StringComparison.OrdinalIgnoreCase));
+        }
+
+        Rows = rows.ToList();
+        Loading = false;
+    }
+
+    private string StatusBadgeClass(string? status) => (status ?? "").ToLower() switch
+    {
+        "pending" => "bg-warning text-dark",
+        "approved" => "bg-success",
+        "rejected" => "bg-danger",
+        _ => "bg-secondary"
+    };
+
+    private class RowVm
+    {
+        public int ApplicationId { get; set; }
+        public string PetName { get; set; } = "";
+        public string ApplicantEmail { get; set; } = "";
+        public DateTime ApplicationDate { get; set; }
+        public string Status { get; set; } = "";
+    }
+}

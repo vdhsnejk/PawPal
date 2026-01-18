@@ -1,0 +1,100 @@
+﻿@page "/shelters/create"
+@using PawPal.Domain
+@using PawPal.Repositories
+@using Microsoft.AspNetCore.Authorization
+@inject IShelterRepository ShelterRepository
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthProvider
+@attribute [Authorize]
+
+<PageTitle>Register Shelter</PageTitle>
+
+<h1>Register Your Shelter</h1>
+<hr />
+
+<div class="row">
+    <div class="col-md-6">
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger">@errorMessage</div>
+        }
+
+        <EditForm Model="Shelter" OnValidSubmit="AddShelter">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" />
+
+            <div class="mb-3">
+                <label for="name" class="form-label">Shelter Name</label>
+                <InputText id="name" @bind-Value="Shelter.Name" class="form-control" />
+                <ValidationMessage For="() => Shelter.Name" class="text-danger" />
+            </div>
+
+            <div class="mb-3">
+                <label for="address" class="form-label">Address</label>
+                <InputText id="address" @bind-Value="Shelter.Address" class="form-control" />
+                <ValidationMessage For="() => Shelter.Address" class="text-danger" />
+            </div>
+
+            <div class="mb-3">
+                <label for="contact" class="form-label">Contact Number</label>
+                <InputText id="contact" @bind-Value="Shelter.ContactNumber" class="form-control" />
+                <ValidationMessage For="() => Shelter.ContactNumber" class="text-danger" />
+            </div>
+
+            <div class="mb-3">
+                <label for="email" class="form-label">Email (Public)</label>
+                <InputText id="email" @bind-Value="Shelter.Email" class="form-control" />
+                <ValidationMessage For="() => Shelter.Email" class="text-danger" />
+            </div>
+
+            <div class="mb-3">
+                <label for="website" class="form-label">Website</label>
+                <InputText id="website" @bind-Value="Shelter.Website" class="form-control" />
+                <ValidationMessage For="() => Shelter.Website" class="text-danger" />
+            </div>
+
+            <div class="mb-3">
+                <label for="desc" class="form-label">Description</label>
+                <InputTextArea id="desc" @bind-Value="Shelter.Description" class="form-control" />
+                <ValidationMessage For="() => Shelter.Description" class="text-danger" />
+            </div>
+
+            <button type="submit" class="btn btn-primary">Register</button>
+            <a href="/shelters" class="btn btn-secondary">Cancel</a>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    public Shelter Shelter { get; set; } = new();
+
+    private string? errorMessage;
+
+    private async Task AddShelter()
+    {
+        // 1. Get Logged In User
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var userId = user.FindFirst(u => u.Type.Contains("nameidentifier"))?.Value;
+
+        if (userId == null)
+        {
+            errorMessage = "You must be logged in to register a shelter.";
+            return;
+        }
+
+        // 2. Check if user already has a shelter (Optional rule)
+        var existing = await ShelterRepository.GetShelterByUserIdAsync(userId);
+        if (existing != null)
+        {
+            errorMessage = "You have already registered a shelter under this account.";
+            return;
+        }
+
+        // 3. Link and Save
+        Shelter.ApplicationUserId = userId;
+        await ShelterRepository.AddShelterAsync(Shelter);
+        NavigationManager.NavigateTo("/shelters");
+    }
+}

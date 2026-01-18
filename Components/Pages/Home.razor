@@ -1,0 +1,129 @@
+﻿@layout PublicLayout
+@page "/"
+@using PawPal.Components.Layout
+
+<PageTitle>PawPal</PageTitle>
+
+<!-- HERO SECTION -->
+<section class="hero-banner">
+    <div class="hero-overlay">
+        <div class="container py-5">
+            <div class="row">
+                <div class="col-lg-7 text-white">
+                    <h1 class="display-3 fw-bold">Adopt a Friend</h1>
+                    <p class="lead mt-3">
+                        Browse verified pets from trusted shelters and submit your adoption application online.
+                    </p>
+
+                    <div class="mt-4 d-flex gap-3 flex-wrap">
+                        <NavLink class="btn btn-success btn-lg px-4" href="/pets">
+                            <i class="bi bi-search me-2"></i> Browse Pets
+                        </NavLink>
+                        <NavLink class="btn btn-outline-light btn-lg px-4" href="/adoption-process">
+                            How It Works
+                        </NavLink>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- STATS SECTION -->
+<section class="py-5 text-center">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-4">
+                <h2 class="text-success">200+</h2>
+                <p class="text-muted">Pets Available</p>
+            </div>
+            <div class="col-md-4">
+                <h2 class="text-success">150+</h2>
+                <p class="text-muted">Partner Shelters</p>
+            </div>
+            <div class="col-md-4">
+                <h2 class="text-success">1,000+</h2>
+                <p class="text-muted">Successful Adoptions</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="py-5 bg-light">
+    <div class="container text-center">
+        <h2 class="mb-4">How It Works</h2>
+        <p class="text-muted mb-5">Three simple steps to find your new best friend</p>
+
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm p-4">
+                    <i class="bi bi-search fs-1 text-success mb-3"></i>
+                    <h5>Search & Filter</h5>
+                    <p class="text-muted">
+                        Browse pets by species, breed, age, and size.
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm p-4">
+                    <i class="bi bi-clipboard-check fs-1 text-success mb-3"></i>
+                    <h5>Apply to Adopt</h5>
+                    <p class="text-muted">
+                        Submit an adoption application online.
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm p-4">
+                    <i class="bi bi-house-heart fs-1 text-success mb-3"></i>
+                    <h5>Welcome Home</h5>
+                    <p class="text-muted">
+                        Meet your pet and bring them home.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- WHY PAWPAL -->
+<section class="py-5 bg-success text-white">
+    <div class="container text-center">
+        <h2 class="mb-4">Why Choose PawPal?</h2>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <i class="bi bi-shield-check fs-1 mb-3"></i>
+                <h5>Verified Shelters</h5>
+                <p>All partners meet welfare standards.</p>
+            </div>
+            <div class="col-md-4">
+                <i class="bi bi-heart fs-1 mb-3"></i>
+                <h5>Transparent Process</h5>
+                <p>Track applications clearly.</p>
+            </div>
+            <div class="col-md-4">
+                <i class="bi bi-heart fs-1 mb-3"></i>
+                <h5>Support Network</h5>
+                <p>Guidance every step of the way.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="py-5 text-center">
+    <div class="container">
+        <h2 class="mb-3">Ready to Find Your New Best Friend?</h2>
+        <p class="text-muted mb-4">
+            Join thousands of happy adopters on PawPal.
+        </p>
+        <NavLink href="/pets" class="btn btn-success btn-lg">
+            <i class="bi bi-search me-2"></i> Start Your Search
+        </NavLink>
+    </div>
+</section>

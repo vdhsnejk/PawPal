@@ -1,0 +1,66 @@
+﻿@page "/adoptionapplications/details"
+@using Microsoft.EntityFrameworkCore
+@using PawPal.Domain
+@inject IDbContextFactory<PawPal.Data.PawPalContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Details</PageTitle>
+
+<h1>Details</h1>
+
+<div>
+    <h2>AdoptionApplication</h2>
+    <hr />
+    @if (adoptionapplication is null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else {
+        <dl class="row">
+            <dt class="col-sm-2">AdopterId</dt>
+            <dd class="col-sm-10">@adoptionapplication.AdopterId</dd>
+            <dt class="col-sm-2">PetId</dt>
+            <dd class="col-sm-10">@adoptionapplication.PetId</dd>
+            <dt class="col-sm-2">ApplicationDate</dt>
+            <dd class="col-sm-10">@adoptionapplication.ApplicationDate</dd>
+            <dt class="col-sm-2">Status</dt>
+            <dd class="col-sm-10">@adoptionapplication.Status</dd>
+            <dt class="col-sm-2">Remarks</dt>
+            <dd class="col-sm-10">@adoptionapplication.Remarks</dd>
+            <dt class="col-sm-2">ReviewedByAdminId</dt>
+            <dd class="col-sm-10">@adoptionapplication.ReviewedByAdminId</dd>
+            <dt class="col-sm-2">ReviewedDateTime</dt>
+            <dd class="col-sm-10">@adoptionapplication.ReviewedDateTime</dd>
+            <dt class="col-sm-2">DateCreated</dt>
+            <dd class="col-sm-10">@adoptionapplication.DateCreated</dd>
+            <dt class="col-sm-2">DateUpdated</dt>
+            <dd class="col-sm-10">@adoptionapplication.DateUpdated</dd>
+            <dt class="col-sm-2">CreatedBy</dt>
+            <dd class="col-sm-10">@adoptionapplication.CreatedBy</dd>
+            <dt class="col-sm-2">UpdatedBy</dt>
+            <dd class="col-sm-10">@adoptionapplication.UpdatedBy</dd>
+        </dl>
+        <div>
+            <a href="@($"/adoptionapplications/edit?id={adoptionapplication.Id}")">Edit</a> |
+            <a href="@($"/adoptionapplications")">Back to List</a>
+        </div>
+    }
+</div>
+
+@code {
+    private AdoptionApplication? adoptionapplication;
+
+    [SupplyParameterFromQuery]
+    private int Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        adoptionapplication = await context.AdoptionApplication.FirstOrDefaultAsync(m => m.Id == Id);
+
+        if (adoptionapplication is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+    }
+}

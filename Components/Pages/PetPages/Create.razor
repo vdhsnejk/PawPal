@@ -1,0 +1,121 @@
+﻿@page "/pets/create"
+@using PawPal.Domain
+@using PawPal.Repositories
+@using PawPal.Services
+@using Microsoft.AspNetCore.Components.Forms
+@inject IPetRepository PetRepository
+@inject IShelterRepository ShelterRepository
+@inject IFileService FileService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthProvider
+
+<PageTitle>Create Pet</PageTitle>
+
+<h1>Create New Pet</h1>
+<hr />
+
+<div class="row">
+    <div class="col-md-6">
+        <EditForm Model="Pet" OnValidSubmit="AddPet" Enctype="multipart/form-data">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" />
+
+            <div class="mb-3">
+                <label for="name" class="form-label">Name:</label>
+                <InputText id="name" @bind-Value="Pet.Name" class="form-control" />
+                <ValidationMessage For="() => Pet.Name" class="text-danger" />
+            </div>
+
+            <div class="mb-3">
+                <label for="breed" class="form-label">Breed:</label>
+                <InputText id="breed" @bind-Value="Pet.Breed" class="form-control" />
+                <ValidationMessage For="() => Pet.Breed" class="text-danger" />
+            </div>
+
+            <div class="mb-3">
+                <label for="age" class="form-label">Age:</label>
+                <InputNumber id="age" @bind-Value="Pet.Age" class="form-control" />
+                <ValidationMessage For="() => Pet.Age" class="text-danger" />
+            </div>
+
+            <div class="mb-3">
+                <label for="size" class="form-label">Size:</label>
+                <InputSelect id="size" @bind-Value="Pet.Size" class="form-select">
+                    <option value="">-- Select Size --</option>
+                    <option value="Small">Small</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Large">Large</option>
+                </InputSelect>
+                <ValidationMessage For="() => Pet.Size" class="text-danger" />
+            </div>
+
+            <div class="mb-3">
+                <label for="description" class="form-label">Description:</label>
+                <InputTextArea id="description" @bind-Value="Pet.Description" class="form-control" />
+                <ValidationMessage For="() => Pet.Description" class="text-danger" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Pet Photo</label>
+                <InputFile OnChange="HandleFileSelected" class="form-control" />
+            </div>
+
+            <button type="submit" class="btn btn-primary">Create</button>
+            <a href="/pets" class="btn btn-secondary">Back to List</a>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    public Pet Pet { get; set; } = new();
+
+    private IBrowserFile? uploadedFile;
+    private int myShelterId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // 1. Auto-detect Logged-in Shelter
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var userId = user.FindFirst(u => u.Type.Contains("nameidentifier"))?.Value;
+
+        if (userId != null)
+        {
+            var shelter = await ShelterRepository.GetShelterByUserIdAsync(userId);
+            if (shelter != null)
+            {
+                myShelterId = shelter.Id;
+            }
+        }
+    }
+
+    private void HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        uploadedFile = e.File;
+    }
+
+    private async Task AddPet()
+    {
+        // 2. Attach Shelter ID
+        if (myShelterId != 0)
+        {
+            Pet.ShelterId = myShelterId;
+        }
+        else
+        {
+            // Fallback: If no shelter logged in, maybe set a default or show error
+            // For now, we proceed so it doesn't crash demo
+        }
+
+        // 3. Handle Image Upload
+        if (uploadedFile != null)
+        {
+            Pet.ImageUrl = await FileService.SaveFileAsync(uploadedFile);
+        }
+
+        // 4. Save via Repository
+        await PetRepository.AddPetAsync(Pet);
+        NavigationManager.NavigateTo("/pets");
+    }
+}

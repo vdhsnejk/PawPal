@@ -1,0 +1,52 @@
+﻿@page "/shelters/edit"
+@using PawPal.Domain
+@using PawPal.Repositories
+@inject IShelterRepository ShelterRepository
+@inject NavigationManager NavigationManager
+
+<h1>Edit Shelter</h1>
+<hr />
+
+@if (Shelter != null)
+{
+    <div class="row">
+        <div class="col-md-6">
+            <EditForm Model="Shelter" OnValidSubmit="UpdateShelter">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="mb-3">
+                    <label class="form-label">Name</label>
+                    <InputText @bind-Value="Shelter.Name" class="form-control" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Contact</label>
+                    <InputText @bind-Value="Shelter.ContactNumber" class="form-control" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Address</label>
+                    <InputText @bind-Value="Shelter.Address" class="form-control" />
+                </div>
+
+                <button type="submit" class="btn btn-primary">Save</button>
+                <a href="/shelters" class="btn btn-secondary">Cancel</a>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery] public int Id { get; set; }
+    [SupplyParameterFromForm] public Shelter? Shelter { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Shelter == null) Shelter = await ShelterRepository.GetShelterByIdAsync(Id);
+    }
+
+    private async Task UpdateShelter()
+    {
+        await ShelterRepository.UpdateShelterAsync(Shelter!);
+        NavigationManager.NavigateTo("/shelters");
+    }
+}

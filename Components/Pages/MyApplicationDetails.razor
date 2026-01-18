@@ -1,0 +1,102 @@
+﻿@page "/my-applications/details"
+@using PawPal.Domain
+@using Microsoft.EntityFrameworkCore
+@using PawPal.Data
+@inject IDbContextFactory<PawPalContext> DbFactory
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthProvider
+
+<PageTitle>Application Details</PageTitle>
+
+<div class="container mt-4">
+    <h1>Application Details</h1>
+    <hr />
+
+    @if (application is null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>
+                    Status:
+                    <span class="badge @GetStatusBadge(application.Status)">@application.Status</span>
+                </span>
+                <small class="text-muted">Submitted: @application.ApplicationDate.ToShortDateString()</small>
+            </div>
+            <div class="card-body">
+                @if (pet != null)
+                {
+                    <h5 class="card-title">Application for: <strong>@pet.Name</strong></h5>
+                    <p class="text-muted">@pet.Breed &bull; @pet.Age years old</p>
+                }
+                else
+                {
+                    <h5 class="card-title text-danger">Pet information unavailable (ID: @application.PetId)</h5>
+                }
+
+                <hr />
+
+                <h6 class="card-subtitle mb-3 text-muted">Your Details</h6>
+                <dl class="row">
+                    <dt class="col-sm-3">Full Name</dt>
+                    <dd class="col-sm-9">@application.FullName</dd>
+
+                    <dt class="col-sm-3">Phone</dt>
+                    <dd class="col-sm-9">@application.PhoneNumber</dd>
+
+                    <dt class="col-sm-3">Address</dt>
+                    <dd class="col-sm-9">@application.Address</dd>
+
+                    <dt class="col-sm-3">Housing Type</dt>
+                    <dd class="col-sm-9">@application.HousingType</dd>
+
+                    <dt class="col-sm-3">Admin Remarks</dt>
+                    <dd class="col-sm-9">
+                        @(string.IsNullOrEmpty(application.AdminRemarks) ? "No remarks yet." : application.AdminRemarks)
+                    </dd>
+                </dl>
+
+                <div class="mt-3">
+                    <a href="/my-applications" class="btn btn-secondary">Back to List</a>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private AdoptionApplication? application;
+    private Pet? pet;
+
+    [SupplyParameterFromQuery]
+    public int Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+
+        // 1. Fetch the Application
+        application = await context.AdoptionApplication
+            .FirstOrDefaultAsync(m => m.Id == Id);
+
+        if (application is null)
+        {
+            NavigationManager.NavigateTo("/my-applications");
+            return;
+        }
+
+        // 2. Manual Fix: Fetch the Pet separately since navigation property is missing
+        pet = await context.Pet.FirstOrDefaultAsync(p => p.Id == application.PetId);
+    }
+
+    private string GetStatusBadge(string status) => status switch
+    {
+        "Approved" => "bg-success",
+        "Rejected" => "bg-danger",
+        "Pending" => "bg-warning text-dark",
+        _ => "bg-secondary"
+    };
+}

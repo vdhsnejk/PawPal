@@ -1,0 +1,314 @@
+﻿@page "/admin/applications/{Id:int}"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Administrator")]
+@rendermode InteractiveServer
+@layout PawPal.Components.Layout.PublicLayout
+
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using PawPal.Data
+@using PawPal.Domain
+
+@inject PawPalContext Db
+@inject UserManager<PawPalUser> UserManager
+@inject NavigationManager Nav
+
+<PageTitle>Review Application</PageTitle>
+
+<div class="container-xl py-4">
+    <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-3">
+        <div>
+            <a class="text-decoration-none" href="/admin/applications">← Back to Applications</a>
+            <h1 class="mb-1 mt-2" style="font-weight:800;">Review Application #@Id</h1>
+            <div class="text-muted">Review full applicant details before approving or rejecting.</div>
+        </div>
+
+        @if (App != null)
+        {
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-muted small">Status</span>
+                <span class="badge @StatusBadgeClass(App.Status) px-3 py-2">@App.Status</span>
+            </div>
+        }
+    </div>
+
+    @if (Loading)
+    {
+        <div class="text-muted">Loading...</div>
+    }
+    else if (App == null || Pet == null)
+    {
+        <div class="alert alert-danger">Application not found.</div>
+    }
+    else
+    {
+        <div class="row g-3">
+            <!-- LEFT: Applicant + Details -->
+            <div class="col-12 col-lg-8">
+                <!-- Summary card -->
+                <div class="card shadow-sm border-0 mb-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between flex-wrap gap-2">
+                            <div>
+                                <div class="text-muted small">Pet</div>
+                                <div class="fw-semibold fs-5">@Pet.Name</div>
+                                <div class="text-muted small">Submitted @App.ApplicationDate.ToString("dd MMM yyyy, h:mm tt")</div>
+                            </div>
+                            <div class="text-end">
+                                <div class="text-muted small">Applicant</div>
+                                <div class="fw-semibold">@ApplicantEmail</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Applicant Contact -->
+                <div class="card shadow-sm border-0 mb-3">
+                    <div class="card-body">
+                        <h5 class="mb-3" style="font-weight:800;">Applicant Contact</h5>
+
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <div class="text-muted small">Full Name</div>
+                                <div class="fw-semibold">@App.FullName</div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="text-muted small">Phone</div>
+                                <div class="fw-semibold">@App.PhoneNumber</div>
+                            </div>
+                            <div class="col-12">
+                                <div class="text-muted small">Address</div>
+                                <div class="fw-semibold">@App.Address</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Home Suitability -->
+                <div class="card shadow-sm border-0 mb-3">
+                    <div class="card-body">
+                        <h5 class="mb-3" style="font-weight:800;">Home Suitability</h5>
+
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <div class="text-muted small">Housing Type</div>
+                                <div class="fw-semibold">@App.HousingType</div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="text-muted small">Avg hours pet alone (per day)</div>
+                                <div class="fw-semibold">@App.AvgHoursAlone</div>
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <div class="text-muted small">Landlord / family approval</div>
+                                <div class="fw-semibold">@YesNo(App.HasLandlordOrFamilyApproval)</div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="text-muted small">Anyone allergic at home</div>
+                                <div class="fw-semibold">@YesNo(App.AnyoneAllergic)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Experience -->
+                <div class="card shadow-sm border-0 mb-3">
+                    <div class="card-body">
+                        <h5 class="mb-3" style="font-weight:800;">Experience</h5>
+
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <div class="text-muted small">Currently own pets</div>
+                                <div class="fw-semibold">@YesNo(App.CurrentlyOwnPets)</div>
+                            </div>
+
+                            <div class="col-12">
+                                <div class="text-muted small">Current pets (if any)</div>
+                                <div class="border rounded p-3 bg-light" style="white-space:pre-wrap;">
+                                    @EmptyAsDash(App.CurrentPetsDetails)
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <div class="text-muted small">Pet experience details</div>
+                                <div class="border rounded p-3 bg-light" style="white-space:pre-wrap;">
+                                    @EmptyAsDash(App.PetExperienceDetails)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Motivation & Care -->
+                <div class="card shadow-sm border-0">
+                    <div class="card-body">
+                        <h5 class="mb-3" style="font-weight:800;">Motivation & Care</h5>
+
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <div class="text-muted small">Reason for adoption</div>
+                                <div class="border rounded p-3 bg-light" style="white-space:pre-wrap;">
+                                    @App.ReasonForAdoption
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <div class="text-muted small">Primary caregiver</div>
+                                <div class="fw-semibold">@App.PrimaryCaregiver</div>
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <div class="text-muted small">Prepared for vet care</div>
+                                <div class="fw-semibold">@YesNo(App.PreparedForVetCare)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: Admin Actions -->
+            <div class="col-12 col-lg-4">
+                <div class="card shadow-sm border-0 sticky-top" style="top: 90px;">
+                    <div class="card-body">
+                        <h5 class="mb-2" style="font-weight:800;">Admin Actions</h5>
+                        <div class="text-muted small mb-3">Update application status after reviewing details.</div>
+
+                        @if (!string.IsNullOrEmpty(Message))
+                        {
+                            <div class="alert alert-success">@Message</div>
+                        }
+                        @if (!string.IsNullOrEmpty(Error))
+                        {
+                            <div class="alert alert-danger">@Error</div>
+                        }
+
+                        <label class="form-label small text-muted">Admin remarks (optional)</label>
+                        <textarea class="form-control mb-3" rows="4" @bind="AdminRemarks"></textarea>
+
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-success" @onclick="ApproveAsync" disabled="@Working">
+                                <i class="bi bi-check2-circle me-2"></i> Approve
+                            </button>
+
+                            <button class="btn btn-danger" @onclick="RejectAsync" disabled="@Working">
+                                <i class="bi bi-x-circle me-2"></i> Reject
+                            </button>
+
+                            <button class="btn btn-outline-danger" @onclick="DeleteAsync" disabled="@Working">
+                                <i class="bi bi-trash me-2"></i> Delete Application
+                            </button>
+                        </div>
+
+                        <hr class="my-3" />
+
+                        <div class="small text-muted">
+                            <div class="fw-semibold text-dark mb-1">What happens next?</div>
+                            Approve → adopter can proceed to appointment scheduling (you can add that later).<br />
+                            Reject → adoption request is closed.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private bool Loading = true;
+    private bool Working = false;
+
+    private AdoptionApplication? App;
+    private Pet? Pet;
+    private string ApplicantEmail = "(unknown)";
+
+    private string AdminRemarks = "";
+    private string? Message;
+    private string? Error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Loading = true;
+
+        App = await Db.AdoptionApplication.FirstOrDefaultAsync(a => a.Id == Id);
+        if (App == null)
+        {
+            Loading = false;
+            return;
+        }
+
+        Pet = await Db.Pet.AsNoTracking().FirstOrDefaultAsync(p => p.Id == App.PetId);
+
+        var user = await UserManager.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == App.AdopterId);
+        ApplicantEmail = user?.Email ?? "(unknown)";
+
+        AdminRemarks = App.AdminRemarks ?? "";
+
+        Loading = false;
+    }
+
+    private async Task ApproveAsync() => await UpdateStatusAsync("Approved");
+    private async Task RejectAsync() => await UpdateStatusAsync("Rejected");
+
+    private async Task UpdateStatusAsync(string newStatus)
+    {
+        if (App == null) return;
+
+        Working = true;
+        Error = null;
+        Message = null;
+
+        try
+        {
+            App.Status = newStatus;
+            App.AdminRemarks = string.IsNullOrWhiteSpace(AdminRemarks) ? null : AdminRemarks.Trim();
+
+            await Db.SaveChangesAsync();
+            Message = $"Application updated to {newStatus}.";
+        }
+        catch (Exception ex)
+        {
+            Error = ex.Message;
+        }
+        finally
+        {
+            Working = false;
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (App == null) return;
+
+        Working = true;
+        Error = null;
+        Message = null;
+
+        try
+        {
+            Db.AdoptionApplication.Remove(App);
+            await Db.SaveChangesAsync();
+            Nav.NavigateTo("/admin/applications", true);
+        }
+        catch (Exception ex)
+        {
+            Error = ex.Message;
+        }
+        finally
+        {
+            Working = false;
+        }
+    }
+
+    private string YesNo(bool v) => v ? "Yes" : "No";
+
+    private string EmptyAsDash(string? s) => string.IsNullOrWhiteSpace(s) ? "—" : s;
+
+    private string StatusBadgeClass(string? status) => (status ?? "").ToLower() switch
+    {
+        "pending" => "bg-warning text-dark",
+        "approved" => "bg-success",
+        "rejected" => "bg-danger",
+        _ => "bg-secondary"
+    };
+}

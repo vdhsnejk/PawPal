@@ -1,0 +1,43 @@
+﻿@page "/shelters"
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using PawPal.Domain
+@using PawPal.Repositories
+@inject IShelterRepository ShelterRepository
+
+<PageTitle>Shelters</PageTitle>
+
+<h1>Our Shelters</h1>
+
+<p>
+    <a href="shelters/create" class="btn btn-primary">Register a Shelter</a>
+</p>
+
+@if (sheltersQueryable == null)
+{
+    <p><em>Loading shelters...</em></p>
+}
+else
+{
+    <QuickGrid Class="table table-striped" Items="sheltersQueryable">
+        <PropertyColumn Property="s => s.Name" Sortable="true" />
+        <PropertyColumn Property="s => s.Address" />
+        <PropertyColumn Property="s => s.ContactNumber" Title="Contact" />
+        <PropertyColumn Property="s => s.Email" />
+
+        <TemplateColumn Title="Actions">
+            <a href="@($"shelters/details?id={context.Id}")">Details</a> |
+            <a href="@($"shelters/edit?id={context.Id}")">Edit</a> |
+            <a href="@($"shelters/delete?id={context.Id}")">Delete</a>
+        </TemplateColumn>
+    </QuickGrid>
+}
+
+@code {
+    private IQueryable<Shelter>? sheltersQueryable;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var items = await ShelterRepository.GetAllSheltersAsync();
+        sheltersQueryable = items.AsQueryable();
+    }
+}

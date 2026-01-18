@@ -1,0 +1,112 @@
+﻿@page "/appointments/details"
+@using PawPal.Domain
+@using PawPal.Repositories
+@using Microsoft.AspNetCore.Authorization
+@inject IAppointmentRepository AppointmentRepository
+@inject IShelterRepository ShelterRepository
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthProvider
+@attribute [Authorize]
+
+<PageTitle>Appointment Details</PageTitle>
+
+@if (appointment is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <h1>Appointment Details</h1>
+    <hr />
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h4 class="card-title">
+                Status:
+                <span class="badge @GetStatusBadge(appointment.Status)">@appointment.Status</span>
+            </h4>
+
+            <dl class="row mt-3">
+                <dt class="col-sm-3">Date & Time</dt>
+                <dd class="col-sm-9">@appointment.AppointmentDate.ToString("f")</dd>
+
+                <dt class="col-sm-3">Pet</dt>
+                <dd class="col-sm-9">
+                    <a href="/pets/details?id=@appointment.PetId">@appointment.Pet?.Name</a>
+                </dd>
+
+                <dt class="col-sm-3">Applicant</dt>
+                <dd class="col-sm-9">@appointment.ApplicationUser?.UserName</dd>
+
+                <dt class="col-sm-3">Remarks</dt>
+                <dd class="col-sm-9">@appointment.Remarks</dd>
+            </dl>
+        </div>
+
+        @if (canManage)
+        {
+            <div class="card-footer bg-light">
+                <h6 class="text-muted">Management Actions:</h6>
+                <button class="btn btn-success me-2" @onclick='() => UpdateStatus(appointment, "Confirmed")'>Confirm</button>
+                <button class="btn btn-danger me-2" @onclick='() => UpdateStatus(appointment, "Cancelled")'>Reject</button>
+                <button class="btn btn-warning" @onclick='() => UpdateStatus(appointment, "Completed")'>Mark Completed</button>
+            </div>
+        }
+    </div>
+
+    <a href="/appointments" class="btn btn-outline-secondary">Back to List</a>
+}
+
+@code {
+    private Appointment? appointment;
+    private bool canManage = false;
+
+    [SupplyParameterFromQuery]
+    public int Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        appointment = await AppointmentRepository.GetAppointmentByIdAsync(Id);
+
+        if (appointment is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+            return;
+        }
+
+        // Check Permissions
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var userId = user.FindFirst(u => u.Type.Contains("nameidentifier"))?.Value;
+
+        if (user.IsInRole("Admin"))
+        {
+            canManage = true;
+        }
+        else if (userId != null)
+        {
+            // Shelter Owner Logic: Can manage if they own the pet's shelter
+            var myShelter = await ShelterRepository.GetShelterByUserIdAsync(userId);
+            if (myShelter != null && appointment.Pet?.ShelterId == myShelter.Id)
+            {
+                canManage = true;
+            }
+        }
+    }
+
+    private async Task UpdateStatus(Appointment appt, string newStatus)
+    {
+        appt.Status = newStatus;
+        await AppointmentRepository.UpdateAppointmentAsync(appt);
+        // Refresh UI
+        appointment = await AppointmentRepository.GetAppointmentByIdAsync(Id);
+    }
+
+    private string GetStatusBadge(string status) => status switch
+    {
+        "Confirmed" => "bg-success",
+        "Cancelled" => "bg-danger",
+        "Completed" => "bg-primary",
+        _ => "bg-secondary"
+    };
+}

@@ -1,0 +1,116 @@
+﻿@page "/appointments/create"
+@using PawPal.Domain
+@using PawPal.Repositories
+@using Microsoft.AspNetCore.Authorization
+@inject IAppointmentRepository AppointmentRepository
+@inject IPetRepository PetRepository
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthProvider
+@attribute [Authorize]
+
+<PageTitle>Book Appointment</PageTitle>
+
+<h1>Book an Appointment</h1>
+<hr />
+
+<div class="row">
+    <div class="col-md-6">
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger">@errorMessage</div>
+        }
+
+        <EditForm Model="Appointment" OnValidSubmit="AddAppointment">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" />
+
+            <div class="mb-3">
+                <label class="form-label">Select Pet</label>
+                <InputSelect @bind-Value="Appointment.PetId" class="form-select">
+                    <option value="0">-- Choose a Pet --</option>
+                    @if (availablePets != null)
+                    {
+                        foreach (var pet in availablePets)
+                        {
+                            <option value="@pet.Id">@pet.Name (@pet.Breed)</option>
+                        }
+                    }
+                </InputSelect>
+                <ValidationMessage For="() => Appointment.PetId" class="text-danger" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Date & Time</label>
+                <InputDate Type="InputDateType.DateTimeLocal" @bind-Value="Appointment.AppointmentDate" class="form-control" />
+                <ValidationMessage For="() => Appointment.AppointmentDate" class="text-danger" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Remarks / Purpose</label>
+                <InputTextArea @bind-Value="Appointment.Remarks" class="form-control" />
+            </div>
+
+            <button type="submit" class="btn btn-primary">Confirm Booking</button>
+            <a href="/appointments" class="btn btn-secondary">Cancel</a>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    public Appointment Appointment { get; set; } = new();
+
+    // Allow pre-selecting a pet via URL (e.g., /appointments/create?petId=5)
+    [SupplyParameterFromQuery]
+    public int? PetId { get; set; }
+
+    private IEnumerable<Pet>? availablePets;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load pets for the dropdown
+        availablePets = await PetRepository.GetAllPetsAsync();
+
+        // Set default date to tomorrow
+        if (Appointment.AppointmentDate == default)
+        {
+            Appointment.AppointmentDate = DateTime.Now.AddDays(1).Date.AddHours(10);
+        }
+
+        // Auto-select pet if passed in URL
+        if (PetId.HasValue && Appointment.PetId == 0)
+        {
+            Appointment.PetId = PetId.Value;
+        }
+    }
+
+    private async Task AddAppointment()
+    {
+        if (Appointment.PetId == 0)
+        {
+            errorMessage = "Please select a pet.";
+            return;
+        }
+
+        if (Appointment.AppointmentDate < DateTime.Now)
+        {
+            errorMessage = "Appointment date cannot be in the past.";
+            return;
+        }
+
+        // Link to Current User
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var userId = user.FindFirst(u => u.Type.Contains("nameidentifier"))?.Value;
+
+        if (userId != null)
+        {
+            Appointment.ApplicationUserId = userId;
+            Appointment.Status = "Pending"; // Default status
+
+            await AppointmentRepository.AddAppointmentAsync(Appointment);
+            NavigationManager.NavigateTo("/appointments");
+        }
+    }
+}

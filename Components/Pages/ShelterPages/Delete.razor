@@ -1,0 +1,30 @@
+﻿@page "/shelters/delete"
+@using PawPal.Domain
+@using PawPal.Repositories
+@inject IShelterRepository ShelterRepository
+@inject NavigationManager NavigationManager
+
+<h1>Delete Shelter</h1>
+<div class="alert alert-danger">Warning: Deleting a shelter will delete ALL its pets!</div>
+
+@if (shelter != null)
+{
+    <h3>Are you sure you want to delete @shelter.Name?</h3>
+    <EditForm Model="shelter" OnValidSubmit="DeleteShelter">
+        <button type="submit" class="btn btn-danger">Confirm Delete</button>
+        <a href="/shelters" class="btn btn-secondary">Cancel</a>
+    </EditForm>
+}
+
+@code {
+    private Shelter? shelter;
+    [SupplyParameterFromQuery] public int Id { get; set; }
+
+    protected override async Task OnInitializedAsync() => shelter = await ShelterRepository.GetShelterByIdAsync(Id);
+
+    private async Task DeleteShelter()
+    {
+        await ShelterRepository.DeleteShelterAsync(Id);
+        NavigationManager.NavigateTo("/shelters");
+    }
+}
