@@ -10,20 +10,72 @@
 
 <PageTitle>Admin Dashboard</PageTitle>
 
-<div class="container-xl py-4">
-    <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-3">
-        <div>
-            <div class="text-muted small">PAWPAL • ADMIN</div>
-            <h1 class="mb-1" style="font-weight:800;">Welcome, Nicole!</h1>
-            <div class="text-muted">Overview of adoption activity.</div>
+<div class="container py-4">
+
+    <!-- Header (Browse Pets style) -->
+    <div class="page-header p-4 p-md-5 mb-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3">
+            <div>
+                <div class="text-muted small">PAWPAL • ADMIN</div>
+                <h1 class="mb-2 fw-bold">Admin Dashboard</h1>
+                <p class="text-muted mb-0">Overview of adoption activity and recent submissions.</p>
+            </div>
+
+            <div class="d-flex gap-2 flex-wrap">
+                <a class="btn btn-success" href="/admin/applications">
+                    <i class="bi bi-clipboard-check me-2"></i> Review Applications
+                </a>
+                <a class="btn btn-outline-success" href="/admin/users">
+                    <i class="bi bi-people me-2"></i> Manage Users
+                </a>
+            </div>
         </div>
-        <div class="d-flex gap-2">
-            <a class="btn btn-success" href="/admin/applications">
-                <i class="bi bi-clipboard-check me-2"></i> Review Applications
-            </a>
-            <a class="btn btn-outline-secondary" href="/pets">
-                <i class="bi bi-search me-2"></i> Browse Pets
-            </a>
+
+        <!-- KPI bar (like Browse Pets pill) -->
+        <div class="filter-card bg-white shadow-sm mt-4 p-3">
+            <div class="row g-3">
+                <div class="col-12 col-md-4">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-muted small">Pending</div>
+                            <div class="display-6 fw-bold mb-0">@PendingCount</div>
+                            <div class="text-muted small">Needs review</div>
+                        </div>
+                        <div class="rounded-circle d-flex align-items-center justify-content-center"
+                             style="width:46px;height:46px;background:#fff3cd;">
+                            <i class="bi bi-hourglass-split text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-muted small">Approved</div>
+                            <div class="display-6 fw-bold mb-0">@ApprovedCount</div>
+                            <div class="text-muted small">Completed</div>
+                        </div>
+                        <div class="rounded-circle d-flex align-items-center justify-content-center"
+                             style="width:46px;height:46px;background:#d1e7dd;">
+                            <i class="bi bi-check2-circle text-success"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-muted small">Rejected</div>
+                            <div class="display-6 fw-bold mb-0">@RejectedCount</div>
+                            <div class="text-muted small">Closed</div>
+                        </div>
+                        <div class="rounded-circle d-flex align-items-center justify-content-center"
+                             style="width:46px;height:46px;background:#f8d7da;">
+                            <i class="bi bi-x-circle text-danger"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -33,91 +85,34 @@
     }
     else
     {
-        <div class="row g-3 mb-3">
-            <div class="col-12 col-md-4">
-                <div class="card shadow-sm border-0 h-100">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <div class="text-muted small">Pending</div>
-                                <div class="display-6 fw-bold mb-0">@PendingCount</div>
-                            </div>
-                            <div class="rounded-circle d-flex align-items-center justify-content-center"
-                                 style="width:46px;height:46px;background:#fff3cd;">
-                                <i class="bi bi-hourglass-split text-warning"></i>
-                            </div>
-                        </div>
-                        <div class="text-muted small mt-2">Needs review.</div>
-                    </div>
-                    <div class="card-footer bg-transparent border-0 pt-0">
-                        <a class="text-decoration-none" href="/admin/applications">
-                            View pending <i class="bi bi-arrow-right"></i>
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-12 col-md-4">
-                <div class="card shadow-sm border-0 h-100">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <div class="text-muted small">Approved</div>
-                                <div class="display-6 fw-bold mb-0">@ApprovedCount</div>
-                            </div>
-                            <div class="rounded-circle d-flex align-items-center justify-content-center"
-                                 style="width:46px;height:46px;background:#d1e7dd;">
-                                <i class="bi bi-check2-circle text-success"></i>
-                            </div>
-                        </div>
-                        <div class="text-muted small mt-2">Completed approvals.</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-12 col-md-4">
-                <div class="card shadow-sm border-0 h-100">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <div class="text-muted small">Rejected</div>
-                                <div class="display-6 fw-bold mb-0">@RejectedCount</div>
-                            </div>
-                            <div class="rounded-circle d-flex align-items-center justify-content-center"
-                                 style="width:46px;height:46px;background:#f8d7da;">
-                                <i class="bi bi-x-circle text-danger"></i>
-                            </div>
-                        </div>
-                        <div class="text-muted small mt-2">Rejected applications.</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <div class="card shadow-sm border-0">
             <div class="card-body">
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                     <div>
-                        <h5 class="mb-1" style="font-weight:800;">Recent Applications</h5>
-                        <div class="text-muted small">Latest submissions (top 8).</div>
+                        <h5 class="mb-1 fw-bold">Recent Applications</h5>
+                        <div class="text-muted small">Latest submissions.</div>
                     </div>
-                    <a class="btn btn-sm btn-outline-success" href="/admin/applications">View all</a>
+                    <div class="d-flex gap-2">
+                        <a class="btn btn-sm btn-outline-success" href="/admin/applications">View all</a>
+                    </div>
                 </div>
 
                 <div class="table-responsive mt-3">
                     <table class="table align-middle mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th>Pet</th>
+                                <th style="min-width:240px;">Pet</th>
+                                <th>Applicant</th>
                                 <th>Submitted</th>
                                 <th>Status</th>
+                                <th class="text-end">Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             @if (Recent.Count == 0)
                             {
                                 <tr>
-                                    <td colspan="3" class="text-center text-muted py-4">No applications yet.</td>
+                                    <td colspan="5" class="text-center text-muted py-4">No applications yet.</td>
                                 </tr>
                             }
                             else
@@ -125,15 +120,30 @@
                                 @foreach (var r in Recent)
                                 {
                                     <tr>
-                                        <td class="fw-semibold">@r.PetName</td>
+                                        <td class="fw-semibold">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <img src="@GetPetImageUrl(r.PetId)"
+                                                     alt="Pet"
+                                                     style="width:36px;height:36px;border-radius:10px;object-fit:cover;border:1px solid #eee;" />
+                                                <span>@r.PetName</span>
+                                            </div>
+                                        </td>
+                                        <td class="text-muted">@r.ApplicantName</td>
                                         <td class="text-muted">@r.ApplicationDate.ToString("dd MMM yyyy, h:mm tt")</td>
                                         <td><span class="badge @StatusBadgeClass(r.Status)">@r.Status</span></td>
+                                        <td class="text-end">
+                                            <a class="btn btn-sm btn-outline-success"
+                                               href="@($"/admin/applications/{r.ApplicationId}")">
+                                                Review
+                                            </a>
+                                        </td>
                                     </tr>
                                 }
                             }
                         </tbody>
                     </table>
                 </div>
+
             </div>
         </div>
     }
@@ -163,7 +173,10 @@
                 p => p.Id,
                 (a, p) => new RecentVm
                 {
+                    ApplicationId = a.Id,
+                    PetId = p.Id,
                     PetName = p.Name,
+                    ApplicantName = a.FullName ?? "(No name)",
                     ApplicationDate = a.ApplicationDate,
                     Status = a.Status
                 })
@@ -181,9 +194,21 @@
         _ => "bg-secondary"
     };
 
+    private string GetPetImageUrl(int petId) => petId switch
+    {
+        1 => "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=300&q=70",
+        2 => "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=300&q=70",
+        3 => "https://images.unsplash.com/photo-1592194996308-7b43878e84a6?auto=format&fit=crop&w=300&q=70",
+        4 => "https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=300&q=70",
+        _ => "https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=300&q=70"
+    };
+
     private class RecentVm
     {
+        public int ApplicationId { get; set; }
+        public int PetId { get; set; }
         public string PetName { get; set; } = "";
+        public string ApplicantName { get; set; } = "";
         public DateTime ApplicationDate { get; set; }
         public string Status { get; set; } = "";
     }
