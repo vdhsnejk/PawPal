@@ -13,22 +13,34 @@
 
 <PageTitle>Applications</PageTitle>
 
-<div class="container-xl py-4">
-    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-        <div>
-            <h1 class="mb-1" style="font-weight:800;">Applications</h1>
-            <div class="text-muted">Review, approve, or reject adoption requests.</div>
-        </div>
-        <a class="btn btn-outline-secondary" href="/admin">
-            <i class="bi bi-arrow-left me-2"></i> Back to Dashboard
-        </a>
-    </div>
+<div class="container py-4">
 
-    <div class="card shadow-sm border-0 mb-3">
-        <div class="card-body">
-            <div class="row g-2 align-items-end">
+    <!-- Header (same “Browse Pets” vibe) -->
+    <div class="page-header p-4 p-md-5 mb-4"
+         style="border-radius:18px;background:linear-gradient(135deg,#f8fafc 0%, #ffffff 55%, #f1f8f5 100%);border:1px solid rgba(0,0,0,.06);">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3">
+            <div>
+                <div class="text-muted small">PAWPAL • ADMIN</div>
+                <h1 class="mb-2 fw-bold">Applications</h1>
+                <p class="text-muted mb-0">Review, approve, or reject adoption requests.</p>
+            </div>
+
+            <div class="d-flex gap-2 flex-wrap">
+                <a class="btn btn-outline-secondary" href="/admin">
+                    <i class="bi bi-arrow-left me-2"></i> Back to Dashboard
+                </a>
+                <a class="btn btn-success" href="/admin/applications">
+                    <i class="bi bi-clipboard-check me-2"></i> Refresh
+                </a>
+            </div>
+        </div>
+
+        <!-- Filter bar (styled card) -->
+        <div class="bg-white shadow-sm mt-4 p-3"
+             style="border-radius:16px;border:1px solid rgba(0,0,0,.06);">
+            <div class="row g-3 align-items-end">
                 <div class="col-12 col-md-3">
-                    <label class="form-label small text-muted">Status</label>
+                    <label class="form-label mb-1 small text-muted">Status</label>
                     <select class="form-select" value="@StatusFilter" @onchange="OnStatusChanged">
                         <option value="All">All</option>
                         <option value="Pending">Pending</option>
@@ -38,20 +50,24 @@
                 </div>
 
                 <div class="col-12 col-md-6">
-                    <label class="form-label small text-muted">Search</label>
+                    <label class="form-label mb-1 small text-muted">Search</label>
                     <input class="form-control"
-                           placeholder="Search by pet name or applicant email..."
+                           placeholder="Search by pet name or applicant (name/email)..."
                            value="@SearchTerm"
                            @oninput="OnSearchTyping" />
                 </div>
 
                 <div class="col-12 col-md-3 d-flex gap-2">
                     <button class="btn btn-success w-100" @onclick="LoadAsync">
-                        Search
+                        <i class="bi bi-search me-2"></i>Search
                     </button>
                     <button class="btn btn-outline-secondary w-100" @onclick="ClearFilters">
                         Clear
                     </button>
+                </div>
+
+                <div class="text-muted small">
+                    Tip: status filters instantly; search uses the Search button for speed.
                 </div>
             </div>
         </div>
@@ -67,38 +83,86 @@
     }
     else
     {
-        <div class="card shadow-sm border-0">
+        <!-- Results card (modern container) -->
+        <div class="card shadow-sm border-0"
+             style="border-radius:18px;border:1px solid rgba(0,0,0,.06);overflow:hidden;">
+            <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <div>
+                    <h5 class="mb-1 fw-bold">Results</h5>
+                    <div class="text-muted small">
+                        Showing <span class="fw-semibold">@Rows.Count</span> application(s).
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 flex-wrap">
+                    <span class="badge rounded-pill text-bg-light border px-3 py-2">
+                        Pending: <span class="fw-semibold">@Rows.Count(x => x.Status == "Pending")</span>
+                    </span>
+                    <span class="badge rounded-pill text-bg-light border px-3 py-2">
+                        Approved: <span class="fw-semibold">@Rows.Count(x => x.Status == "Approved")</span>
+                    </span>
+                    <span class="badge rounded-pill text-bg-light border px-3 py-2">
+                        Rejected: <span class="fw-semibold">@Rows.Count(x => x.Status == "Rejected")</span>
+                    </span>
+                </div>
+            </div>
+
             <div class="table-responsive">
                 <table class="table align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th>Pet</th>
-                            <th>Applicant</th>
+                            <th style="min-width:280px;">Pet</th>
+                            <th style="min-width:240px;">Applicant</th>
                             <th>Submitted</th>
                             <th>Status</th>
-                            <th class="text-end">Action</th>
+                            <th class="text-end" style="min-width:130px;">Action</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach (var r in Rows)
                         {
                             <tr>
-                                <td class="fw-semibold">@r.PetName</td>
-                                <td class="text-muted">@r.ApplicantEmail</td>
-                                <td class="text-muted">@r.ApplicationDate.ToString("dd MMM yyyy, h:mm tt")</td>
-                                <td>
-                                    <span class="badge @StatusBadgeClass(r.Status)">@r.Status</span>
+                                <td class="fw-semibold">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <img src="@GetPetThumb(r.PetId)"
+                                             alt="Pet"
+                                             style="width:44px;height:44px;border-radius:12px;object-fit:cover;border:1px solid rgba(0,0,0,.08);" />
+                                        <div class="d-flex flex-column">
+                                            <span class="fw-semibold">@r.PetName</span>
+                                            <span class="text-muted small">Pet ID: @r.PetId</span>
+                                        </div>
+                                    </div>
                                 </td>
+
+                                <td>
+                                    <div class="d-flex flex-column">
+                                        <span class="fw-semibold">@r.ApplicantName</span>
+                                        <span class="text-muted small">@r.ApplicantEmail</span>
+                                    </div>
+                                </td>
+
+                                <td class="text-muted">@r.ApplicationDate.ToString("dd MMM yyyy, h:mm tt")</td>
+
+                                <td>
+                                    <span class="badge @StatusBadgeClass(r.Status) px-3 py-2" style="border-radius:999px;">
+                                        @r.Status
+                                    </span>
+                                </td>
+
                                 <td class="text-end">
                                     <a class="btn btn-sm btn-outline-success"
                                        href="@($"/admin/applications/{r.ApplicationId}")">
-                                        Review
+                                        Review <i class="bi bi-arrow-right ms-1"></i>
                                     </a>
                                 </td>
                             </tr>
                         }
                     </tbody>
                 </table>
+            </div>
+
+            <div class="card-footer bg-white border-0 text-muted small">
+                Updated just now • Admin tools
             </div>
         </div>
     }
@@ -120,7 +184,7 @@
     private async Task OnStatusChanged(ChangeEventArgs e)
     {
         StatusFilter = e.Value?.ToString() ?? "All";
-        await LoadAsync();
+        await LoadAsync(); // instant filter
     }
 
     private void OnSearchTyping(ChangeEventArgs e)
@@ -140,7 +204,6 @@
         Loading = true;
         Rows.Clear();
 
-        // Pull apps + pet name first
         var q = Db.AdoptionApplication.AsNoTracking()
             .Join(Db.Pet.AsNoTracking(),
                   a => a.PetId,
@@ -151,6 +214,8 @@
                       a.AdopterId,
                       a.ApplicationDate,
                       a.Status,
+                      a.FullName,
+                      PetId = p.Id,
                       PetName = p.Name
                   });
 
@@ -161,8 +226,8 @@
             .OrderByDescending(x => x.ApplicationDate)
             .ToListAsync();
 
-        // Map adopterId -> email in one go
         var adopterIds = list.Select(x => x.AdopterId).Distinct().ToList();
+
         var users = await UserManager.Users
             .Where(u => adopterIds.Contains(u.Id))
             .Select(u => new { u.Id, u.Email })
@@ -170,11 +235,12 @@
 
         var emailMap = users.ToDictionary(x => x.Id, x => x.Email ?? "(no email)");
 
-        // Apply search after we have emails
         IEnumerable<RowVm> rows = list.Select(x => new RowVm
         {
             ApplicationId = x.Id,
+            PetId = x.PetId,
             PetName = x.PetName,
+            ApplicantName = string.IsNullOrWhiteSpace(x.FullName) ? "(No name provided)" : x.FullName!,
             ApplicantEmail = emailMap.TryGetValue(x.AdopterId, out var em) ? em : "(unknown)",
             ApplicationDate = x.ApplicationDate,
             Status = x.Status
@@ -185,6 +251,7 @@
             var term = SearchTerm.Trim();
             rows = rows.Where(r =>
                 r.PetName.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                r.ApplicantName.Contains(term, StringComparison.OrdinalIgnoreCase) ||
                 r.ApplicantEmail.Contains(term, StringComparison.OrdinalIgnoreCase));
         }
 
@@ -200,10 +267,21 @@
         _ => "bg-secondary"
     };
 
+    private string GetPetThumb(int petId) => petId switch
+    {
+        1 => "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=300&q=70",
+        2 => "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=300&q=70",
+        3 => "https://images.unsplash.com/photo-1592194996308-7b43878e84a6?auto=format&fit=crop&w=300&q=70",
+        4 => "https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=300&q=70",
+        _ => "https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=300&q=70"
+    };
+
     private class RowVm
     {
         public int ApplicationId { get; set; }
+        public int PetId { get; set; }
         public string PetName { get; set; } = "";
+        public string ApplicantName { get; set; } = "";
         public string ApplicantEmail { get; set; } = "";
         public DateTime ApplicationDate { get; set; }
         public string Status { get; set; } = "";
