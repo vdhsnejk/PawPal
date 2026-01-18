@@ -1,0 +1,133 @@
+/* --- AUTH PAGE THEME (Liquid Glass + Neumorphism) --- */
+.neumorph-bg {
+    background-color: #e0e5ec;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+/* --- MAIN CARD --- */
+.auth-card {
+    background: #e0e5ec;
+    border-radius: 30px;
+    box-shadow: 20px 20px 60px #bec3c9, -20px -20px 60px #ffffff;
+    width: 100%;
+    max-width: 28rem;
+    padding: 3rem;
+    border: 1px solid rgba(255,255,255,0.4);
+}
+
+    .auth-card.wide {
+        max-width: 50rem;
+    }
+
+/* --- LIQUID TOGGLES (LINKS) --- */
+.glass-toggle-container {
+    background: #e0e5ec;
+    padding: 5px;
+    border-radius: 50px;
+    box-shadow: inset 6px 6px 10px #bec3c9, inset -6px -6px 10px #ffffff;
+    display: inline-flex;
+    margin-bottom: 2rem;
+}
+
+.btn-toggle-role {
+    padding: 10px 25px;
+    border-radius: 40px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-decoration: none; /* Fix for Link */
+    color: #8892a0;
+    transition: all 0.3s ease;
+    display: inline-block;
+}
+
+    .btn-toggle-role:hover {
+        color: #0d6efd;
+    }
+
+    .btn-toggle-role.active {
+        color: #0d6efd;
+        background: rgba(255, 255, 255, 0.6);
+        box-shadow: 5px 5px 10px #bec3c9, -5px -5px 10px #ffffff;
+        backdrop-filter: blur(5px);
+    }
+
+/* --- INPUTS --- */
+.input-group-custom {
+    margin-bottom: 1.5rem;
+    position: relative;
+}
+
+.input-icon {
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #a3b1c6;
+    font-size: 1.1rem;
+    pointer-events: none; /* Click through to input */
+}
+
+/* FORCE STYLE ON INPUTS */
+.form-input {
+    width: 100%;
+    background: #e0e5ec !important;
+    border: none !important;
+    border-radius: 50px !important;
+    padding: 15px 20px 15px 50px !important;
+    box-shadow: inset 6px 6px 10px #bec3c9, inset -6px -6px 10px #ffffff !important;
+    color: #4d4d4d !important;
+    outline: none !important;
+}
+
+    .form-input:focus {
+        box-shadow: inset 4px 4px 6px #bec3c9, inset -4px -4px 6px #ffffff !important;
+        color: #0d6efd !important;
+    }
+
+/* --- LIQUID BUTTON --- */
+.liquid-btn {
+    width: 100%;
+    padding: 15px;
+    border: none;
+    border-radius: 50px;
+    background: linear-gradient(145deg, #0d6efd, #0b5ed7);
+    color: white;
+    font-weight: 700;
+    box-shadow: 6px 6px 12px #bec3c9, -6px -6px 12px #ffffff;
+    position: relative;
+    overflow: hidden;
+}
+
+    .liquid-btn:hover {
+        transform: translateY(-2px);
+    }
+
+/* --- HEADER ICON --- */
+.header-icon-wrapper {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1.5rem;
+    border-radius: 50%;
+    background: #e0e5ec;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 10px 10px 20px #bec3c9, -10px -10px 20px #ffffff;
+    font-size: 2.5rem;
+    color: #0d6efd;
+}
+
+    .header-icon-wrapper.shelter {
+        color: #198754;
+    }
+
+.toggle-link {
+    color: #0d6efd;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+}

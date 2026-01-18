@@ -1,0 +1,122 @@
+﻿@page "/shelter/{Id:int}"
+@using PAWPALme.Models
+@using PAWPALme.Repositories
+@inject IShelterRepository ShelterRepo
+@inject IPetRepository PetRepo
+@inject NavigationManager Nav
+
+<PageTitle>@(shelter?.Name ?? "Shelter Details")</PageTitle>
+
+<div class="container mt-5">
+    @if (shelter == null)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary"></div>
+        </div>
+    }
+    else
+    {
+        @* --- SHELTER INFO HEADER --- *@
+        <div class="card shadow-sm shelter-header-card mb-5">
+            <div class="card-body p-5">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h1 class="display-4 fw-bold text-primary">@shelter.Name</h1>
+
+                        <p class="lead">
+                            <i class="bi bi-geo-alt-fill text-danger me-2"></i>
+                            <a href="@($"https://www.google.com/maps/search/?api=1&query={Uri.EscapeDataString(shelter.Address)}")"
+                               target="_blank" class="address-link">
+                                @shelter.Address
+                            </a>
+                        </p>
+
+                        <p class="fs-5">
+                            <i class="bi bi-telephone-fill text-success me-2"></i> @shelter.Phone
+                        </p>
+
+                        <hr />
+
+                        <p class="text-muted">
+                            @(string.IsNullOrEmpty(shelter.Description) ? "No description provided." : shelter.Description)
+                        </p>
+                    </div>
+
+                    <div class="col-md-4 text-center">
+                        @if (!string.IsNullOrEmpty(shelter.ImageUrl))
+                        {
+                            <img src="@shelter.ImageUrl" class="img-fluid rounded shadow shelter-logo" alt="@shelter.Name Logo" />
+                        }
+                        else
+                        {
+                            <div class="p-5 bg-light rounded text-muted">
+                                <i class="bi bi-building fs-1"></i>
+                                <p class="mt-2">No Logo Available</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* --- PETS LIST --- *@
+        <h3 class="fw-bold mb-4">Pets Available for Adoption</h3>
+
+        @if (pets == null)
+        {
+            <div class="text-center py-4">
+                <div class="spinner-border text-secondary"></div>
+            </div>
+        }
+        else if (!pets.Any())
+        {
+            <div class="alert alert-secondary">No pets available right now.</div>
+        }
+        else
+        {
+            <div class="row g-4">
+                @foreach (var pet in pets)
+                {
+                    <div class="col-md-3">
+                        <div class="card h-100 shadow-sm pet-card">
+                            <div class="pet-img-container">
+                                @if (!string.IsNullOrEmpty(pet.ImageUrl))
+                                {
+                                    <img src="@pet.ImageUrl" class="pet-img" alt="@pet.Name" />
+                                }
+                                else
+                                {
+                                    <span class="text-muted"><i class="bi bi-camera"></i> No Image</span>
+                                }
+                                <span class="badge bg-dark opacity-75 breed-badge">@pet.Breed</span>
+                            </div>
+
+                            <div class="card-body text-center">
+                                <h5 class="card-title fw-bold">@pet.Name</h5>
+                                <p class="card-text text-muted">@pet.Age yrs • @pet.Gender</p>
+
+                                <div class="d-grid gap-2">
+                                    <a href="pet/@pet.Id" class="btn btn-outline-secondary btn-sm">View Details</a>
+                                    <a href="book-appointment/@pet.Id" class="btn btn-primary btn-sm">Request to Adopt</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private Shelter? shelter;
+    private IEnumerable<Pet>? pets;
+
+    protected override async Task OnInitializedAsync()
+    {
+        shelter = await ShelterRepo.GetByIdAsync(Id);
+        if (shelter == null) { Nav.NavigateTo("shelters"); return; }
+        pets = await PetRepo.GetPetsByShelterIdAsync(Id);
+    }
+}

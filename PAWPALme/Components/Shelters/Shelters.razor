@@ -1,0 +1,79 @@
+﻿@page "/shelters"
+@using PAWPALme.Models
+@using PAWPALme.Repositories
+@inject IShelterRepository ShelterRepo
+
+<PageTitle>Partner Shelters</PageTitle>
+
+<div class="container mt-4">
+    <div class="text-center mb-5">
+        <h1 class="display-5 fw-bold text-primary">Our Shelter Partners</h1>
+        <p class="lead text-muted">Dedicated organizations helping pets find homes.</p>
+    </div>
+
+    @if (shelters == null)
+    {
+        <div class="d-flex justify-content-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else if (!shelters.Any())
+    {
+        <div class="alert alert-info text-center">No shelters are currently registered.</div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var s in shelters)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 shadow-sm hover-card">
+                        <div class="shelter-img-container">
+                            @if (!string.IsNullOrEmpty(s.ImageUrl))
+                            {
+                                <img src="@s.ImageUrl" class="shelter-img" alt="@s.Name Logo" />
+                            }
+                            else
+                            {
+                                <i class="bi bi-house-heart fs-1 text-muted"></i>
+                            }
+                        </div>
+
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold text-primary">@s.Name</h5>
+
+                            <p class="card-text small mb-2">
+                                <i class="bi bi-geo-alt-fill text-danger me-1"></i>
+                                <a href="@($"https://www.google.com/maps/search/?api=1&query={Uri.EscapeDataString(s.Address)}")"
+                                   target="_blank"
+                                   class="address-link"
+                                   title="View on Google Maps">
+                                    @s.Address
+                                </a>
+                            </p>
+
+                            <p class="card-text"><small><i class="bi bi-telephone me-1"></i> @s.Phone</small></p>
+
+                            @if (!string.IsNullOrEmpty(s.Description))
+                            {
+                                <p class="card-text text-truncate text-muted">@s.Description</p>
+                            }
+                        </div>
+                        <div class="card-footer bg-white border-top-0 pb-3">
+                            <a href="shelter/@s.Id" class="btn btn-outline-primary w-100">View Details & Pets</a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private IEnumerable<Shelter>? shelters;
+
+    protected override async Task OnInitializedAsync()
+    {
+        shelters = await ShelterRepo.GetAllAsync();
+    }
+}

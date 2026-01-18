@@ -1,0 +1,247 @@
+﻿@page "/shelter/appointments"
+@rendermode InteractiveServer
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using PAWPALme.Models
+@using PAWPALme.Data
+@using PAWPALme.Repositories
+@using PAWPALme.Enums
+@using Microsoft.JSInterop
+@attribute [Authorize(Roles = "Shelter")]
+@inject IAppointmentRepository ApptRepo
+@inject IShelterRepository ShelterRepo
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IJSRuntime JS
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>Manage Appointments</h3>
+    </div>
+
+    @if (appointments == null)
+    {
+        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+    }
+    else if (!appointments.Any())
+    {
+        <div class="alert alert-info">No appointment requests found.</div>
+    }
+    else
+    {
+        <div class="table-card">
+            <div class="table-responsive">
+                <table class="table align-middle table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>Applicant</th>
+                            <th>Pet</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var appt in appointments)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-bold">@appt.AppointmentDate.ToShortDateString()</div>
+                                    <small class="text-muted">@DateTime.Today.Add(appt.AppointmentTime).ToString("hh:mm tt")</small>
+                                </td>
+                                <td>
+                                    <div class="applicant-name">@(appt.AdoptionApplication?.ApplicantName ?? "Unknown")</div>
+                                    <button class="btn btn-link btn-sm p-0 text-decoration-none" @onclick="() => ViewDetails(appt)">
+                                        View Info
+                                    </button>
+                                </td>
+                                <td>@appt.Pet?.Name</td>
+                                <td>
+                                    <span class="badge @GetBadgeClass(appt.Status)">@appt.Status</span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-action-group">
+                                        @if (appt.Status == AppointmentStatus.Pending)
+                                        {
+                                            <button class="btn btn-sm btn-success" @onclick="() => OpenConfirmModal(appt)">Approve</button>
+                                            @* FIX: Use Denied status instead of Cancelled *@
+                                            <button class="btn btn-sm btn-outline-dark" @onclick="() => UpdateStatus(appt, AppointmentStatus.Denied)">Deny</button>
+                                        }
+                                        else if (appt.Status == AppointmentStatus.Confirmed)
+                                        {
+                                            <button class="btn btn-sm btn-outline-primary" @onclick="() => OpenConfirmModal(appt)">
+                                                <i class="bi bi-pencil-fill"></i> Edit
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => ConfirmCancel(appt)">
+                                                <i class="bi bi-x-circle"></i> Cancel
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">Closed</span>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+@if (selectedAppointment != null)
+{
+    <div class="modal fade show modal-backdrop-custom" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Application Details</h5>
+                    <button type="button" class="btn-close" @onclick="CloseDetails"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Applicant:</strong> @(selectedAppointment.AdoptionApplication?.ApplicantName ?? "N/A")</p>
+                    <p><strong>Email:</strong> @(selectedAppointment.AdoptionApplication?.ApplicantEmail ?? "N/A")</p>
+                    <hr />
+                    <p><strong>Interest In:</strong> @(selectedAppointment.Pet?.Name)</p>
+                    <p><strong>User Notes:</strong></p>
+                    <div class="p-3 bg-light rounded border">
+                        @(string.IsNullOrWhiteSpace(selectedAppointment.Notes) ? "No notes provided." : selectedAppointment.Notes)
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseDetails">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (confirmingAppointment != null)
+{
+    <div class="modal fade show modal-backdrop-custom" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header @(confirmingAppointment.Status == AppointmentStatus.Pending ? "bg-success text-white" : "bg-primary text-white")">
+                    <h5 class="modal-title">
+                        @(confirmingAppointment.Status == AppointmentStatus.Pending ? "Confirm Appointment" : "Edit Appointment")
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseConfirmModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-3">Set the final date and time.</p>
+
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-bold">Date</label>
+                            <input type="date" class="form-control" @bind="confirmDate" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold">Time</label>
+                            <input type="time" class="form-control" @bind="confirmTime" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Shelter Remarks</label>
+                        <textarea class="form-control" rows="3" placeholder="e.g. Please bring ID." @bind="confirmRemarks"></textarea>
+                    </div>
+
+                    <div class="alert alert-light border small">
+                        <i class="bi bi-geo-alt-fill text-danger"></i> <strong>Location:</strong><br />
+                        @currentShelterAddress
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseConfirmModal">Cancel</button>
+                    <button type="button" class="btn @(confirmingAppointment.Status == AppointmentStatus.Pending ? "btn-success" : "btn-primary")"
+                            @onclick="FinalizeApproval">
+                        @(confirmingAppointment.Status == AppointmentStatus.Pending ? "Confirm & Approve" : "Save Changes")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private IEnumerable<Appointment>? appointments;
+    private ApplicationUser? currentUser;
+    private Appointment? selectedAppointment;
+    private Appointment? confirmingAppointment;
+    private DateTime confirmDate;
+    private DateTime confirmTime;
+    private string confirmRemarks = "";
+    private string currentShelterAddress = "Loading...";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        currentUser = await UserManager.GetUserAsync(authState.User);
+
+        if (currentUser?.ShelterId != null)
+        {
+            await LoadData();
+            var shelter = await ShelterRepo.GetByIdAsync(currentUser.ShelterId.Value);
+            currentShelterAddress = shelter?.Address ?? "Address not found";
+        }
+    }
+
+    private async Task LoadData()
+    {
+        if (currentUser?.ShelterId != null)
+            appointments = await ApptRepo.GetByShelterIdAsync(currentUser.ShelterId.Value);
+    }
+
+    private void OpenConfirmModal(Appointment appt)
+    {
+        confirmingAppointment = appt;
+        confirmDate = appt.AppointmentDate;
+        confirmTime = DateTime.Today.Add(appt.AppointmentTime);
+        confirmRemarks = appt.ShelterRemarks ?? "";
+    }
+
+    private void CloseConfirmModal() => confirmingAppointment = null;
+
+    private async Task FinalizeApproval()
+    {
+        if (confirmingAppointment != null)
+        {
+            confirmingAppointment.AppointmentDate = confirmDate;
+            confirmingAppointment.AppointmentTime = confirmTime.TimeOfDay;
+            confirmingAppointment.ShelterRemarks = confirmRemarks;
+            confirmingAppointment.Status = AppointmentStatus.Confirmed;
+            await ApptRepo.UpdateAsync(confirmingAppointment);
+            await LoadData();
+            confirmingAppointment = null;
+        }
+    }
+
+    private async Task ConfirmCancel(Appointment appt)
+    {
+        bool confirmed = await JS.InvokeAsync<bool>("confirm", "Are you sure you want to cancel this appointment?");
+        if (confirmed) await UpdateStatus(appt, AppointmentStatus.Cancelled);
+    }
+
+    private async Task UpdateStatus(Appointment appt, AppointmentStatus status)
+    {
+        appt.Status = status;
+        await ApptRepo.UpdateAsync(appt);
+        await LoadData();
+    }
+
+    private void ViewDetails(Appointment appt) => selectedAppointment = appt;
+    private void CloseDetails() => selectedAppointment = null;
+
+    // FIX: Added badge class for Denied
+    private string GetBadgeClass(AppointmentStatus status) => status switch
+    {
+        AppointmentStatus.Confirmed => "bg-success",
+        AppointmentStatus.Cancelled => "bg-danger",
+        AppointmentStatus.Denied => "bg-dark", // Different color for Denied
+        AppointmentStatus.Pending => "bg-warning text-dark",
+        _ => "bg-secondary"
+    };
+}
